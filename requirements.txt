@@ -1,0 +1,7 @@
+# Python dependencies
+Flask
+Flask-pymongo
+Flask-Login
+Flask-Bcrypt
+pymongo
+python-dotenv
