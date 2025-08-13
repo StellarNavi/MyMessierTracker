@@ -1,0 +1,22 @@
+<!-- user profile page -->
+ <!-- will display only if the login was successful -->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Profile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; background:#0f1220; color:#e5e7eb; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; }
+    h1 { margin-bottom: 0.5rem; }
+    a { color: #a5b4fc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Welcome, {{ user.user_name or user.email }}</h1>
+  <p>Your email: {{ user.email }}</p>
+  <p><a href="{{ url_for('logout') }}">Log out</a></p>
+</body>
+</html>

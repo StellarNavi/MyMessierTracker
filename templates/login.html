@@ -1,1 +1,50 @@
  <!-- # Login page -->
+
+ <!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; background:#0f1220; color:#e5e7eb; display:flex; min-height:100vh; align-items:center; justify-content:center; }
+    .card { background:#151a2b; padding:2rem; border-radius:16px; width:100%; max-width:380px; box-shadow:0 10px 30px rgba(0,0,0,0.3); }
+    label { display:block; margin:0 0 .25rem; font-size:.9rem; color:#9ca3af; }
+    input[type="email"], input[type="password"] { width:100%; padding:.75rem .9rem; border-radius:10px; border:1px solid #29304a; background:#0e1322; color:#e5e7eb; outline:none; }
+    input:focus { border-color:#5563f2; }
+    .row { margin-bottom:1rem; }
+    .btn { width:100%; padding:.8rem 1rem; border:0; border-radius:12px; background:#5563f2; color:white; font-weight:600; cursor:pointer; }
+    .btn:hover { opacity:.95; }
+    .error { color:#fca5a5; background:#2a1b1b; border:1px solid #7f1d1d; padding:.6rem .8rem; border-radius:10px; margin-bottom:1rem; }
+    .inline { display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:#cbd5e1; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 style="margin-top:0; margin-bottom:1rem;">Sign in</h2>
+
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('login') }}">
+      <div class="row">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="username" required />
+      </div>
+
+      <div class="row">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
+      </div>
+
+      <div class="row inline">
+        <input id="remember" name="remember" type="checkbox" />
+        <label for="remember" style="margin:0;">Remember me</label>
+      </div>
+
+      <button class="btn" type="submit">Log in</button>
+    </form>
+  </div>
+</body>
+</html>
