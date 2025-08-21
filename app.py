@@ -8,6 +8,9 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 import psycopg2
 import os
 from config import Config
+import uuid, os, mimetypes
+from datetime import datetime
+from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)
@@ -22,6 +25,11 @@ bcrypt = Bcrypt(app)
 # login                                             
 login_manager = LoginManager(app)       # testing
 login_manager.login_view = 'login'      # testing
+
+# for the pop-up journal entry
+ALLOWED_EXT = {"jpg","jpeg","png","webp"}
+UPLOAD_DIR = os.path.join(app.root_path, "static", "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 # establish postgres connection and pull from env variables (with gitignore for security)
@@ -40,13 +48,17 @@ def get_db_conn():
         password=DB_PASS
     )
 
+# checks for valid file type
+def _allowed(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".",1)[1].lower() in ALLOWED_EXT
+
 #user class for login
 class User(UserMixin):
     def __init__(self, id, email, user_name, progress=None): #todo - map to the view for user progress table
         self.id = str(id)          # flask-login expects stringable id so pass as str
         self.email = email
         self.user_name = user_name
-        # simple summary of user progress for main page with analytics
+        # simple summary of user progress for main page with analytics   TODO - updated to db views for actuals
         self.progress = progress or {
             "total": 0,
             "nebulae": 0,
@@ -55,13 +67,119 @@ class User(UserMixin):
         }
 
 
-# routing
-@app.route("/")
+
+@app.route("/") # ************************ 8/20 update - current
 @login_required
 def dashboard():
-    return render_template("index.html", user=current_user)
+    # fetch options for the modal/pop-up
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cur: # get list of valid messier objects for the dropdown foruser to choose from
+            cur.execute("""
+                SELECT messier_number, common_name AS common_name
+                FROM public.messier_objects
+                ORDER BY messier_number ASC -- this ensures the list order makes sense
+            """)
+            rows = cur.fetchall()
+    finally:
+        conn.close()
 
-#describe how flask should  load a user from Postgres by id
+    objects = [{"m_number": r[0], "common_name": r[1]} for r in rows]
+    return render_template("index.html", user=current_user, objects=objects)
+
+
+# function for loading a journal entry, intaking an image and ensuring there is just one image per object loaded
+@app.route("/journal/new", methods=["POST"])
+@login_required
+def journal_new():
+    user_id = int(current_user.id)
+    messier_id = int(request.form["messier_id"])
+    observed_date = request.form.get("observed_date", "").strip()
+    journal_text = request.form.get("journal_text","").strip()
+    file = request.files.get("image")
+
+    # basic validation
+    if not file or not file.filename or not _allowed(file.filename):
+        flash("Please upload a JPG/PNG/WebP image.", "invalid file type")
+        return redirect(url_for("dashboard"))
+    try:
+        obs_date = datetime.strptime(observed_date, "%Y-%m-%d").date()
+    except Exception:
+        flash("Invalid observed date.", "danger")
+        return redirect(url_for("dashboard"))
+
+    # save file locally under /static/uploads/<uuid>.<ext> **FOR NOW - will move to cloud in future**
+    original = secure_filename(file.filename)
+    ext = original.rsplit(".",1)[1].lower()
+    img_id = uuid.uuid4()
+    fname = f"{img_id}.{ext}"
+    abs_path = os.path.join(UPLOAD_DIR, fname)
+    rel_path = f"/static/uploads/{fname}"
+    file.save(abs_path)
+
+    # write to Postgres: images -> user_object_images (upsert) -> journal_entries (upsert)
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            # 1) insert image row
+            cur.execute("""
+                INSERT INTO public.images (id, file_name, file_path, mime_type, created_at)
+                VALUES (%s, %s, %s, %s, NOW())
+            """, (str(img_id), original, rel_path, mimetypes.guess_type(original)[0] or "application/octet-stream"))
+
+            # 2) ensure a single image per (user, object)
+            # if a row already exists, update the image_id; else insert
+            cur.execute("""
+                SELECT id FROM public.user_object_images
+                WHERE user_id = %s AND messier_id = %s
+            """, (user_id, messier_id))
+            row = cur.fetchone()
+            if row:
+                cur.execute("""
+                    UPDATE public.user_object_images
+                    SET image_id = %s
+                    WHERE id = %s
+                """, (str(img_id), row[0]))
+            else:
+                cur.execute("""
+                    INSERT INTO public.user_object_images (id, user_id, messier_id, image_id, created_at)
+                    VALUES (%s, %s, %s, %s, NOW())
+                """, (str(uuid.uuid4()), user_id, messier_id, str(img_id)))
+
+            # 3) journal entry: one per (user, object); update if exists
+            cur.execute("""
+                SELECT id FROM public.journal_entries
+                WHERE user_id = %s AND messier_id = %s
+            """, (user_id, messier_id))
+            j = cur.fetchone()
+            if j:
+                cur.execute("""
+                    UPDATE public.journal_entries
+                    SET image_id = %s,
+                        journal_text = %s,
+                        observed_date = %s,
+                        updated_at = NOW()
+                    WHERE id = %s
+                """, (str(img_id), journal_text, obs_date, j[0]))
+            else:
+                cur.execute("""
+                    INSERT INTO public.journal_entries
+                        (id, user_id, messier_id, image_id, body, observed_date, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+                """, (str(uuid.uuid4()), user_id, messier_id, str(img_id), journal_text, obs_date))
+
+        conn.commit()
+        flash("Journal entry saved.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        app.logger.exception("Failed to save journal entry")
+        flash("Failed to save journal entry.", "danger")
+    finally:
+        if conn: conn.close()
+
+    return redirect(url_for("dashboard"))
+
+# load user from postgres by id
 @login_manager.user_loader
 def load_user(user_id: str):
     conn = get_db_conn()
@@ -181,3 +299,5 @@ import routes
 # run app
 if __name__ == '__main__':
     app.run(debug=True)
+
+    # todo **************** DONT FORGET TO RUN DOCKER!!!
