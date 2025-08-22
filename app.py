@@ -48,7 +48,7 @@ def get_db_conn():
         password=DB_PASS
     )
 
-# checks for valid file type
+# checks for valid file types
 def _allowed(filename: str) -> bool:
     return "." in filename and filename.rsplit(".",1)[1].lower() in ALLOWED_EXT
 
@@ -67,40 +67,116 @@ class User(UserMixin):
         }
 
 
+# todo old dashboard() 8/21 backup
+# @app.route("/") 
+# @login_required
+# def dashboard():
+#     user_id = str(current_user.id)
+#     # fetch options for the modal/pop-up
+#     conn = get_db_conn()
+#     try:
+#         # get list of valid messier objects for the dropdown foruser to choose from
+#         with conn.cursor() as cur: 
+#             cur.execute("""
+#                 SELECT m.id, 
+#                        m.messier_number, 
+#                        m.common_name
+#                 FROM public.messier_objects m
+#                 ORDER BY messier_number ASC -- this ensures the list order makes sense
+#             """)
+#             rows = cur.fetchall()
+    
+#     finally:
+#         conn.close()
 
-@app.route("/") # ************************ 8/20 update - current
+#     # iterates over all 110 objects in the table to provide dropdown list
+#     objects = [{"id": str(r[0]), "m_number": r[1], "common_name": r[2]} for r in rows]
+#     return render_template("index.html", user=current_user, objects=objects)
+
+
+# todo new dashboard() 8/21 testing
+@app.route("/")
 @login_required
 def dashboard():
-    # fetch options for the modal/pop-up
+    user_id = str(current_user.id)
     conn = get_db_conn()
     try:
-        with conn.cursor() as cur: # get list of valid messier objects for the dropdown foruser to choose from
+        with conn.cursor() as cur:
+            # Messier dropdown
             cur.execute("""
-                SELECT messier_number, common_name AS common_name
+                SELECT id, messier_number, COALESCE(common_name,'')
                 FROM public.messier_objects
-                ORDER BY messier_number ASC -- this ensures the list order makes sense
+                ORDER BY messier_number ASC
             """)
-            rows = cur.fetchall()
+            objects = [{"id": str(r[0]), "m_number": r[1], "common_name": r[2]} for r in cur.fetchall()]
+
+            # Journal entries list (latest first)
+            cur.execute("""
+                SELECT je.id,
+                       mo.messier_number,
+                       COALESCE(mo.common_name,'') AS name,
+                       je.observed_date,
+                       je.body,
+                       i.file_path
+                FROM public.journal_entries je
+                JOIN public.messier_objects mo ON mo.id = je.messier_id
+                LEFT JOIN public.images i ON i.id = je.image_id
+                WHERE je.user_id = %s
+                ORDER BY je.observed_date DESC, je.updated_at DESC
+            """, (user_id,))
+            entries = [{
+                "id": str(r[0]),
+                "m_number": r[1],
+                "name": r[2],
+                "date": r[3],
+                "body": r[4],
+                "img": r[5],
+            } for r in cur.fetchall()]
+
+            # Progress numbers from DB
+            cur.execute("""
+                SELECT COUNT(*) FROM public.user_object_images WHERE user_id = %s
+            """, (user_id,))
+            total = cur.fetchone()[0] or 0
+
+            cur.execute("""
+                SELECT mo.object_type, COUNT(*)
+                FROM public.user_object_images uoi
+                JOIN public.messier_objects mo ON mo.id = uoi.messier_id
+                WHERE uoi.user_id = %s
+                GROUP BY mo.object_type
+            """, (user_id,))
+            by_type = {k: v for k, v in cur.fetchall()}
+            progress = {
+                "total": total,
+                "galaxies": by_type.get("Galaxy", 0),
+                "nebulae": by_type.get("Nebula", 0),
+                "star_clusters": by_type.get("Star Cluster", 0),
+            }
     finally:
         conn.close()
 
-    objects = [{"m_number": r[0], "common_name": r[1]} for r in rows]
-    return render_template("index.html", user=current_user, objects=objects)
+    # attach progress to the current_user for template compatibility
+    current_user.progress = progress
+    return render_template("index.html", user=current_user, objects=objects, entries=entries)
+
+
 
 
 # function for loading a journal entry, intaking an image and ensuring there is just one image per object loaded
 @app.route("/journal/new", methods=["POST"])
 @login_required
 def journal_new():
-    user_id = int(current_user.id)
-    messier_id = int(request.form["messier_id"])
+    user_id = str(current_user.id)
+    messier_id = request.form["messier_id"]
     observed_date = request.form.get("observed_date", "").strip()
-    journal_text = request.form.get("journal_text","").strip()
+    body_text = request.form.get("journal_text","").strip()
     file = request.files.get("image")
 
-    # basic validation
+    # basic validation for user journal entry fields
+    # if 'danger' then its displayed to the user sa a warning msg
     if not file or not file.filename or not _allowed(file.filename):
-        flash("Please upload a JPG/PNG/WebP image.", "invalid file type")
+        flash("Please upload a JPG/PNG/WebP image.", "danger")
         return redirect(url_for("dashboard"))
     try:
         obs_date = datetime.strptime(observed_date, "%Y-%m-%d").date()
@@ -108,43 +184,38 @@ def journal_new():
         flash("Invalid observed date.", "danger")
         return redirect(url_for("dashboard"))
 
-    # save file locally under /static/uploads/<uuid>.<ext> **FOR NOW - will move to cloud in future**
+    # save file locally under /static/uploads/<uuid>.<ext> **FOR NOW - may move to cloud in future**
     original = secure_filename(file.filename)
     ext = original.rsplit(".",1)[1].lower()
-    img_id = uuid.uuid4()
-    fname = f"{img_id}.{ext}"
+    # img_id = uuid.uuid4() removing, should let db determine, but test
+    # Use a random name for the physical file; DB will generate its own UUID for the images.id
+    fname = f"{uuid.uuid4().hex}.{ext}"
     abs_path = os.path.join(UPLOAD_DIR, fname)
     rel_path = f"/static/uploads/{fname}"
     file.save(abs_path)
+    mime = mimetypes.guess_type(original)[0] or "application/octet-stream"
+    size = os.path.getsize(abs_path)
 
     # write to Postgres: images -> user_object_images (upsert) -> journal_entries (upsert)
     conn = get_db_conn()
     try:
         with conn.cursor() as cur:
-            # 1) insert image row
+            # 1 - Creates new row for the image and lets db handle uuid
             cur.execute("""
-                INSERT INTO public.images (id, file_name, file_path, mime_type, created_at)
-                VALUES (%s, %s, %s, %s, NOW())
-            """, (str(img_id), original, rel_path, mimetypes.guess_type(original)[0] or "application/octet-stream"))
+                INSERT INTO public.images (user_id, file_name, file_path, mime_type, byte_size, created_at)
+                VALUES (%s, %s, %s, %s, %s, NOW())
+                RETURNING id
+            """, (user_id, original, rel_path, mime, size))
+            img_id = cur.fetchone()[0]   # <-- UUID generated by DB, use everywhere below
 
-            # 2) ensure a single image per (user, object)
-            # if a row already exists, update the image_id; else insert
+            # 2 - Eensures that only a single image per user per object is allowed
+            # by chekcing if a row already exists and updating the image_id, else it inserts
             cur.execute("""
-                SELECT id FROM public.user_object_images
-                WHERE user_id = %s AND messier_id = %s
-            """, (user_id, messier_id))
-            row = cur.fetchone()
-            if row:
-                cur.execute("""
-                    UPDATE public.user_object_images
-                    SET image_id = %s
-                    WHERE id = %s
-                """, (str(img_id), row[0]))
-            else:
-                cur.execute("""
-                    INSERT INTO public.user_object_images (id, user_id, messier_id, image_id, created_at)
-                    VALUES (%s, %s, %s, %s, NOW())
-                """, (str(uuid.uuid4()), user_id, messier_id, str(img_id)))
+                INSERT INTO public.user_object_images (user_id, messier_id, image_id, created_at)
+                VALUES (%s, %s, %s, NOW())
+                ON CONFLICT (user_id, messier_id) DO UPDATE
+                SET image_id = EXCLUDED.image_id
+            """, (user_id, messier_id, str(img_id)))
 
             # 3) journal entry: one per (user, object); update if exists
             cur.execute("""
@@ -156,17 +227,18 @@ def journal_new():
                 cur.execute("""
                     UPDATE public.journal_entries
                     SET image_id = %s,
-                        journal_text = %s,
+                        body = %s,
                         observed_date = %s,
                         updated_at = NOW()
                     WHERE id = %s
-                """, (str(img_id), journal_text, obs_date, j[0]))
+                """, (str(img_id), body_text, obs_date, j[0]))
             else:
                 cur.execute("""
                     INSERT INTO public.journal_entries
-                        (id, user_id, messier_id, image_id, body, observed_date, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
-                """, (str(uuid.uuid4()), user_id, messier_id, str(img_id), journal_text, obs_date))
+                        (user_id, messier_id, image_id, body, observed_date, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+                """, (user_id, messier_id, str(img_id), body_text, obs_date))
+                # todo also allow db to generate the journal_entries uuid?  <-- DB is already generating it now
 
         conn.commit()
         flash("Journal entry saved.", "success")
@@ -178,6 +250,7 @@ def journal_new():
         if conn: conn.close()
 
     return redirect(url_for("dashboard"))
+
 
 # load user from postgres by id
 @login_manager.user_loader
@@ -285,14 +358,6 @@ def logout():
 @login_required
 def profile():
     return render_template("profile.html", user=current_user)
-
-
-# @app.route("/dashboard")
-# @login_required
-# def dashboard():
-#     return render_template("profile.html", user=current_user)
-
-
 
 import routes
 

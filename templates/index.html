@@ -19,9 +19,9 @@
             color: #fff;
             font-weight: bold;
             text-shadow: 0 0 5px #fff;
-            background: linear-gradient(270deg, #8b5fbf, #6e4aa5, #4a6ea5, #bf5f9e);
+            background: linear-gradient(270deg, #8b5fbf, #27816e, #4a6ea5, #bf5f9e);
             background-size: 600% 600%;
-            animation: nebula 8s ease infinite;
+            animation: nebula 5s ease infinite;
             position: relative;
             overflow: hidden;
         }
@@ -44,14 +44,45 @@
           50%  {filter: drop-shadow(0 0 10px rgba(191, 95, 158, 0.9)); }
           100% {filter: drop-shadow(0 0 0 rgba(191, 95, 158, 0.0));}
         }
+
         .hc-glow{
-          animation: galaxyGlow 2.5s ease-in-out infinite;
+          animation: galaxyGlow 5s ease-in-out infinite;
         }
 
+        /* custom for add button */
+        .add-btn {
+        right: 8px;                 
+        border-color: #00ff6600 !important;
+        color: #f7a2f1 !important;
+        }
+        .add-btn:hover {
+          background: #55395c !important; /* subtle glow on hover */
+        }
+        
+        .journal-date {
+          color: #9b78a3; /* teal-blue */
+          font-style: italic;
+        }
     </style>
 </head>
 
-<body style="background-color: #110; color: #8b537f; font-family:Verdana, Geneva, Tahoma, sans-serif;">
+<!-- spacey -->
+<!-- IDEA? "background: radial-gradient(circle at center, #3e0f53, #0e0418 75%);  -->
+<!-- <head>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="background:#161518; 
+             color:#8b537f; 
+             font-family:'Orbitron', sans-serif;"> -->
+
+<!-- more modern = Exo 2 "https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&display=swap" -->
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<!-- change page background -->
+<body style="background:#1d1b24; 
+             color:#9e6399; 
+             font-family:'Rajdhani', sans-serif; font-size: 20px;">
 
     <!-- Starfield background -->
     <div id="particles-js" style="
@@ -66,15 +97,35 @@
     <!-- Page Content -->
     <div style="position: relative; z-index: 1;" class="container mt-4">
 
-        <!-- Page title -->
-        <div class="text-center", style="font-family:fantasy; color:#84ccfc; font-size:30px; font-weight:bold; padding-bottom: 20px;">
-            <h1>{{ (user.user_name or user.username or user.name)|default('Astronomer', true) }}'s Messier Tracker</h1>
-        </div>
+        <!-- Header with Image-->
+        <header class="text-center my-3">
+          <!-- hidden -->
+          <h1 class="visually-hidden">
+            {{ (user.user_name or user.username or user.name)|default('Astronomer', true) }}'s Messier Tracker
+          </h1>
 
-        <h4 class="text-center", style="color:#cbb0d6; font-size:20px; font-weight:bold;" >Total Messier Progress</h4> 
+          <!-- alt here handles in case the image cannot be read for whatever reason and will at least
+               show [username]'s Messier Tracker' -->
+          <img
+            src="{{ url_for('static', filename='img/MyMessierTracker_header_v2.png') }}"
+            alt="{{ (user.user_name or user.username or user.name)|default('Astronomer', true) }}'s Messier Tracker" 
+            class="img-fluid"
+            style="max-width: 980px; width: 60%; height: auto; filter: drop-shadow(0 0 8px rgba(123, 235, 243, 0)); 
+                   padding-bottom: 50px;"
+          /> <!-- testing dropshadow = TODO remove? -->
+
+          <div class="mt-2" style="font-size:1.1rem;">
+            <!-- Welcome, {{ (user.user_name or user.username or user.name)|default('Astronomer', true) }} -->
+          </div>
+        </header>
+
+
+
+
+        <h4 class="m-0 w-100 text-center", style="color:#f4f2f5; font-weight:bold; font-size: 40px;" >Total Objects Captured </h4> 
 
         <!-- Highcharts progress bar-->
-        <div id="hc-total-progress" style="height: 46px; margin: 12px 0;"></div>
+        <div id="hc-total-progress" style="color:#f4f2f5; height: 46px; margin: 12px 0;"></div>
 
         <!-- Highcharts Donuts -->
         <div class="row g-3 mt-2">
@@ -91,15 +142,16 @@
 
 
         <!-- Journal section -->
-        <div class="card mt-4" style="background-color:#1a1a1a; border:2px solid #8b537f;">
+        <div class="card mt-4" style="background-color:#1a1a1a; border:2px solid #866acb;">
             <div class="card-header position-relative d-flex justify-content-center align-items-center"
-                 style="background-color:#1a1a1a; border-bottom:2px solid #8b537f;">
-                <h4 class="m-0 w-100 text-center", style="color:#8b537f;">
+                 style="background-color:#1a1a1a; border-bottom:2px solid #866acb;">
+                <h4 class="m-0 w-100 text-center", style="color:#f4f2f5; font-weight:bold; font-size: 40px;">
                     {{ (user.user_name or user.username or user.name)|default('Astronomer', true) }}'s Journal 
                 </h4> 
+                
                 <!-- Plus button opens modal (backend functionality and validation in progress) -->
                 <button type="button"
-                        class="btn btn-sm btn-outline-light position-absolute end-0 top-50 translate-middle-y"
+                        class="btn btn-sm position-absolute top-50 translate-middle-y add-btn"
                         title="Add new entry"
                         data-bs-toggle="modal" data-bs-target="#uploadModal">
                     <i class="bi bi-plus-lg"></i>
@@ -108,8 +160,27 @@
 
             <!-- Placeholder body - populate with entries later -->
             <div class="card-body p-3" id="journal-list" style="color:#8b537f;">
+              {% if entries and entries|length %}
+                <div class="list-group list-group-flush">
+                  {% for e in entries %}
+                  <div class="list-group-item bg-transparent text-light d-flex align-items-center">
+                    {% if e.img %}
+                      <img src="{{ e.img }}" alt="thumb"
+                          style="width:64px;height:64px;object-fit:cover;border-radius:6px;margin-right:12px;">
+                    {% endif %}
+                    <div class="flex-grow-1">
+                      <div class="fw-semibold">M{{ e.m_number }} — {{ e.name }}</div>
+                      <div class="small journal-date">{{ e.date }}</div>
+                      <div class="small journal-date">{{ e.body }}</div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              {% else %}
                 <em>No entries yet. Click the <i class="bi bi-plus-lg"></i> to add your first.</em>
+              {% endif %}
             </div>
+
         </div>
 
     </div> <!-- closes page content -->
@@ -117,7 +188,7 @@
     <!-- Upload modal (placeholder for now) *************************************** journal entry pop-up ************************************* -->
     <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background-color:#1a1a1a; color:#8b537f; border:2px solid #8b537f;">
+        <div class="modal-content" style="background-color:#1a1a1a; color:#e4b1d9; border:2px solid #8b537f;">
           <div class="modal-header">
             <h5 class="modal-title">Messier Object Entry</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -125,25 +196,25 @@
           <div class="modal-body">
             <form method="POST" action="{{ url_for('journal_new') }}" enctype="multipart/form-data">
               <div class="mb-3">
-                <!-- select M# -->
-                <label class="form-label">Messier Object</label>
+                <!-- REQUIRED - select M# -->
+                <label class="form-label">Messier Object*</label>
                 <select class="form-select" name="messier_id" required>
                   {% for m in objects %}
                     <option value="{{ m.id }}">{{ m.m_number }} — {{ m.common_name }}</option>
                   {% endfor %}
                 </select>
               </div>
-              <!-- get date -->
+              <!-- REQUIRED - get date -->
               <div class="mb-3">
-                <label class="form-label">Observation Date</label>
+                <label class="form-label">Observation Date*</label>
                 <input type="date" class="form-control" name="observed_date" required>
               </div>
-              <!-- get image -->
+              <!-- REQUIRED - get image -->
               <div class="mb-3">
-                <label class="form-label">Image (.jpg/.jpeg/.png/.webp)</label>
+                <label class="form-label">Image (.jpg/.png/.webp)*</label>
                 <input class="form-control" type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required>
               </div>
-              <!-- user notes -->
+              <!-- OPTIONAL - user notes -->
               <div class="mb-3">
                 <label class="form-label">Notes (equipment, events, etc.)</label>
                 <textarea class="form-control" name="journal_text" rows="4" placeholder="200mm refractor, Canon EOS R, 45s exp, clear skies, half-moon"></textarea>
@@ -155,7 +226,7 @@
               </div>
             </form>
           </div>
-          <!-- may add something herein the footer later...   -->
+          <!-- may add something herein the pop-up footer later...   -->
           <!-- <div class="modal-footer">
             <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           </div> -->
@@ -163,18 +234,6 @@
       </div>
     </div>
 
-    <!-- particles.js config -->
-    <script>
-        particlesJS("particles-js", {
-            "particles": {
-                "number": { "value": 50 },
-                "size": { "value": 2 },
-                "color": { "value": "#ffffff" },
-                "opacity": { "value": 0.8 },
-                "move": { "speed": 0.2 }
-            }
-        });
-    </script>
 
     <!-- Bootstrap JS (needed for modal) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -182,25 +241,17 @@
     <!-- Highcharts PROGRESS BAR  -->
     <script>
   document.addEventListener('DOMContentLoaded', function () {
-    // var collected = {{ user.progress.total|int }};
-    var collected = 60;  //testing ******************************** update to user actual LATER ***************************************************
+    var collected = {{ user.progress.total|int }};
     var catalog = 110;
     var remaining = Math.max(catalog - collected, 0);
     var pct = Math.round((collected / catalog) * 1000) / 10;
 
-    Highcharts.chart('hc-total-progress', { //********************************************************************************************** PROGRESS BAR
+    Highcharts.chart('hc-total-progress', { //************ PROGRESS BAR
       chart: {  type: 'bar', 
                 backgroundColor: 'transparent', 
                 height: 46, 
                 spacing: [0, 0, 0, 0] },
-      // events: {
-      //   load: function () {
-      //     var completed = this.series[0] && this.series[0].points[0];
-      //     if (completed && completed.graphic) {
-      //       completed.graphic.addClass('hc-glow');
-      //     }
-      //   }
-      // },
+
       title: { text: null },
       xAxis: { categories: ['Progress'], visible: false },
       yAxis: { min: 0, max: catalog, title: { text: null }, gridLineWidth: 0, labels: { enabled: false } },
@@ -230,13 +281,13 @@
         },
         {
           name: 'Completed',
-          color: '#8b5fbf',
+          color: '#238b98', //change prog bar color
           data: [{ y: collected, className: 'hc-glow' }],
           dataLabels: {
             enabled: collected > 0,           // show label on the filled part
             inside: true,
             formatter: function () { return collected + ' / ' + catalog + ' (' + pct + '%)'; },
-            style: { textOutline: 'none', fontWeight: 'bold', color: '#cbb0d6', fontSize: '16px' }
+            style: { textOutline: 'none', fontWeight: 'bold', color: '#f2f6fa', fontSize: '16px' }
           }
         }
       ],
@@ -258,16 +309,15 @@
   var totalNebulae  = 14;
   var totalClusters = 56;
 
-  function donut(container, completed, total, label) {  //********************************************************************************************** DONUT CHARTS
-    // clamp just in case
+  function donut(container, completed, total, label) {  //************************************************************** DONUT CHARTS
     completed = Math.max(0, Math.min(completed, total));
     var remaining = Math.max(total - completed, 0);
-    //var pct = total ? Math.round(completed / total * 1000) / 10 : 0;
 
     Highcharts.chart(container, {
       chart: { 
         type: 'pie', 
         backgroundColor: 'transparent',
+        spacing: [-10, -10, -10, 0],
         events: {
           render: function () {
             const chart = this;
@@ -291,7 +341,7 @@
               align: 'center'
             })
             .css({
-              color: '#cbb0d6',
+              color: '#f4f2f5', //text color
               fontSize: '16px',
               fontWeight: 'bold'
             })
@@ -299,18 +349,19 @@
           }
         }
       },
-      title: { 
+      title: {  // highchart donut titles
         text: label, 
         align: 'center', 
-        style: { color: '#cbb0d6', fontSize: '20px' }, 
-        y: 12 
+        style: { color: '#f4f2f5', fontSize: '20px' }, 
+        y: 30 
       },
       tooltip: { enabled: false },
       legend: { enabled: false },
       credits: { enabled: false },
       plotOptions: {
         pie: {
-          innerSize: '75%',
+          // size: '100%',
+          innerSize: '70%',
           borderWidth: 0,
           dataLabels: { enabled: false }, // omit lables, have above KPI
           states: { inactive: { opacity: 1 } }
@@ -318,7 +369,7 @@
       },
       series: [{
         data: [
-          { name: 'Completed', y: completed, color: '#8b5fbf' },
+          { name: 'Completed', y: completed, color: '#2db1c1' },
           { name: 'Remaining', y: remaining, color: 'rgba(139,95,191,0.15)' }
         ]
       }]
@@ -328,9 +379,9 @@
 
  
 // TESTING
-  donut('donut-galaxies', 5, totalGalaxies, 'Galaxies');
-  donut('donut-nebulae',  10,  totalNebulae,  'Nebulae');
-  donut('donut-clusters', 5, totalClusters, 'Star Clusters');
+  donut('donut-galaxies', galaxiesDone, totalGalaxies, 'Galaxies');
+  donut('donut-nebulae',  nebulaeDone,  totalNebulae,  'Nebulae');
+  donut('donut-clusters', clustersDone, totalClusters, 'Star Clusters');
 
 })();
 </script>

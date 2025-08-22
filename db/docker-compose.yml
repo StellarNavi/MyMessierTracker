@@ -5,8 +5,8 @@ services:
     container_name: messier-db
     restart: always
     environment:
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app
+      POSTGRES_USER: app # generic for now
+      POSTGRES_PASSWORD: app # generic for now
       POSTGRES_DB: messier
     ports:
       - "5432:5432"
