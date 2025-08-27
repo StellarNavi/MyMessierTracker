@@ -16,8 +16,8 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# setup MongoDB database
-mongo = PyMongo(app)
+# # setup MongoDB database
+# mongo = PyMongo(app) - no longer need... using postgres docker
 
 # password encryption
 bcrypt = Bcrypt(app)
@@ -358,6 +358,13 @@ def logout():
 @login_required
 def profile():
     return render_template("profile.html", user=current_user)
+
+
+
+@app.route("/about")
+@login_required
+def about():
+    return render_template("about.html", user=current_user)
 
 import routes
 

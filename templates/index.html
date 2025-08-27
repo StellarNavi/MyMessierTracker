@@ -79,6 +79,9 @@
 <head>
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;700&display=swap" rel="stylesheet">
 </head>
+
+
+
 <!-- change page background -->
 <body style="background:#1d1b24; 
              color:#9e6399; 
@@ -234,6 +237,42 @@
       </div>
     </div>
 
+    <!-- add modal for **** USER MENU **** for logging out and additonal functionality in future -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 2;" >
+      <div class="dropdown text-end">
+        <button
+          id="userMenuBtn"
+          class="btn btn-sm dropdown-toggle d-flex align-items-center gap-2 border-0"
+          style="color:#d4a5c8; background:transparent; box-shadow:none; font-weight:600;"
+          onmouseenter="this.style.color='#ffffff'"
+          onmouseleave="this.style.color='#d4a5c8'"
+          data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-person-circle fs-4"></i>
+          <span class="d-none d-md-inline">{{ (user.user_name)|default('User', true) }}</span>
+        </button>
+        <ul class="dropdown-menu btn-ghost-pink  dropdown-menu-end dropdown-menu-dark" aria-labelledby="userMenuBtn">
+          <li>
+            <!-- passes the route 'logout' -->
+            <a class="dropdown-item" href="{{ url_for('logout') }}">
+              <!-- text to let user know to click here to logout -->
+              <i class=""></i>Click to Logout
+            </a>
+            <!-- PLACEHOLDR for additional options -->
+            <b class="dropdown-item" href="">
+              <i class=""></i>Pending
+            </b>
+            <!-- PLACEHOLDR for additional options -->
+            <b class="dropdown-item" href="">
+              <i class=""></i>Pending
+            </b>
+          </li>
+        </ul>
+      </div>
+    </div>
+    
+   
+
+
 
     <!-- Bootstrap JS (needed for modal) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -388,4 +427,51 @@
 
 
 </body>
+ <!-- page footer -->
+    <footer class="mt-5" style="position:relative; z-index:1; border-top:2px solid #8b537f; background-color:#1a1a1a;">
+      <div class="container py-4">
+        <div class="row g-4 align-items-center">
+
+          <!-- Col 1: Site logo -->
+          <div class="col-12 col-md-4 text-center text-md-start">
+            <a href="{{ url_for('dashboard') }}" class="d-inline-flex align-items-center text-decoration-none">
+              <img
+                src="{{ url_for('static', filename='img/MyMessierTracker_header_V2.png') }}"
+                alt="My Messier Tracker"
+                style="height:40px; width:auto; filter: drop-shadow(0 0 6px rgba(221, 174, 211, 0.822));"
+              >
+            </a>
+            <div class="small text-muted mt-2">© 2025 My Messier Tracker</div>
+          </div>
+
+          <!-- Col 2: Internal links -->
+          <div class="col-12 col-md-4 text-center">
+            <nav class="nav justify-content-center gap-3">
+              <a class="nav-link px-0 text-light" href="{{ url_for('index') }}">Home</a>
+              <a class="nav-link px-0 text-light" href="{{ url_for('about') }}">About</a>
+              <a class="nav-link px-0 text-light" href="">Profile</a>
+              <!-- placeholders -->
+              <!-- <a class="nav-link px-0 text-light" href="{{ url_for('about') }}">About</a>
+              <a class="nav-link px-0 text-light" href="{{ url_for('profile') }}">Profile</a> -->
+            </nav>
+          </div>
+
+          <!-- Col 3: Social icons -->
+          <div class="col-12 col-md-4 text-center text-md-end">
+            <div class="d-flex justify-content-center justify-content-md-end gap-3">
+              <a class="text-light" href="https://github.com/StellarNavi" target="_blank" rel="noopener" aria-label="GitHub">
+                <i class="bi bi-github fs-4"></i>
+              </a>
+              <a class="text-light" href="https://x.com/NASA" target="_blank" rel="noopener" aria-label="X (Twitter)">
+                <i class="bi bi-twitter-x fs-4"></i>
+              </a>
+              <a class="text-light" href="https://instagram.com/NASA" target="_blank" rel="noopener" aria-label="Instagram">
+                <i class="bi bi-instagram fs-4"></i>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </footer>
 </html>
