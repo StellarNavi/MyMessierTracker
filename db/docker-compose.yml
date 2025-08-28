@@ -1,15 +1,56 @@
-version: '3.8'
+# version: '3.8'
+# services:
+#   db:
+#     image: postgres:15
+#     container_name: messier-db
+#     restart: always
+#     environment:
+#       POSTGRES_USER: app # generic for now
+#       POSTGRES_PASSWORD: app # generic for now
+#       POSTGRES_DB: messier
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - ./dbdata:/var/lib/postgresql/data
+#       - ./init:/docker-entrypoint-initdb.d
+
+
+
+# 8/27 update testing
 services:
   db:
-    image: postgres:15
+    image: postgres:16
     container_name: messier-db
     restart: always
     environment:
-      POSTGRES_USER: app # generic for now
-      POSTGRES_PASSWORD: app # generic for now
       POSTGRES_DB: messier
+      POSTGRES_USER: messier
+      POSTGRES_PASSWORD: messier
     ports:
       - "5432:5432"
     volumes:
-      - ./dbdata:/var/lib/postgresql/data
-      - ./init:/docker-entrypoint-initdb.d
+      - ./init:/docker-entrypoint-initdb.d  
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U messier -d messier"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+# for deploying later
+  web:
+    build:
+      context: ..                  
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ../.env                    
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../static/uploads:/app/static/uploads  
+
+volumes:
+  pgdata:

@@ -1,7 +1,17 @@
-# Python dependencies
-Flask
-Flask-pymongo
-Flask-Login
-Flask-Bcrypt
-pymongo
-python-dotenv
+# # Python dependencies
+# Flask
+# Flask-pymongo
+# Flask-Login
+# Flask-Bcrypt
+# pymongo
+# python-dotenv
+
+
+# 8/27 update
+Flask==3.0.3
+Flask-Login==0.6.3
+Flask-Bcrypt==1.0.1
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+gunicorn==21.2.0
+dotenv

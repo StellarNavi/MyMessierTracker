@@ -1,0 +1,35 @@
+* extract folder contents
+
+* If needed, install docker desktop: https://www.docker.com/products/docker-desktop/
+
+* if needed install python 3.10+
+
+* navigate powershell directory to root of project (my_messier_tracker). This file (instructions.txt) is in the folder.
+
+* Run the below command to install required python packages:
+	pip3 install -r .\requirements.txt
+
+* Make sure docker desktop is running, you can skip the login process
+
+* initiate sql database container via docker by running the below command in powershell
+
+	docker run --name messier-db -e POSTGRES_USER=messier -e POSTGRES_PASSWORD=messier -e POSTGRES_DB=messier -p 5432:5432 -v messier-pgdata:/var/lib/postgresql/data -d postgres:15
+
+
+* run these commands to load schema and seed database
+
+    docker cp db/init/main_schema.sql      messier-db:/docker-entrypoint-initdb.d/01_schema.sql
+
+    docker cp db/init/seed_messier.sql     messier-db:/docker-entrypoint-initdb.d/02_seed.sql
+
+    docker cp db/init/messier_objects.csv  messier-db:/docker-entrypoint-initdb.d/messier_objects.csv
+
+    docker exec -it messier-db psql -U messier -d messier -f /docker-entrypoint-initdb.d/01_schema.sql
+
+    docker exec -it messier-db psql -U messier -d messier -f /docker-entrypoint-initdb.d/02_seed.sql
+
+
+* in powershell run the below command to launch the website app
+	python .\app.py
+
+* go to http://127.0.0.1:5000/ in your web browser and you should see the login screen

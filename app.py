@@ -2,27 +2,32 @@
 
 #imports
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_pymongo import PyMongo
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user    # testing       
 import psycopg2
-import os
 from config import Config
 import uuid, os, mimetypes
 from datetime import datetime
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+import os, secrets
+load_dotenv()  # make .env values available
 
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# # setup MongoDB database
-# mongo = PyMongo(app) - no longer need... using postgres docker
+# ensure SECRET_KEY exists before anything touches session/flash
+app.config['SECRET_KEY'] = (
+    os.getenv('SECRET_KEY')               # from .env if present
+    or app.config.get('SECRET_KEY')       # from Config if it set one
+    or secrets.token_hex(32)              # dev fallback so app still runs
+)
 
 # password encryption
 bcrypt = Bcrypt(app)
 
-# login                                             
+# login using                                            
 login_manager = LoginManager(app)       # testing
 login_manager.login_view = 'login'      # testing
 
@@ -65,33 +70,6 @@ class User(UserMixin):
             "galaxies": 0,
             "star_clusters":0
         }
-
-
-# todo old dashboard() 8/21 backup
-# @app.route("/") 
-# @login_required
-# def dashboard():
-#     user_id = str(current_user.id)
-#     # fetch options for the modal/pop-up
-#     conn = get_db_conn()
-#     try:
-#         # get list of valid messier objects for the dropdown foruser to choose from
-#         with conn.cursor() as cur: 
-#             cur.execute("""
-#                 SELECT m.id, 
-#                        m.messier_number, 
-#                        m.common_name
-#                 FROM public.messier_objects m
-#                 ORDER BY messier_number ASC -- this ensures the list order makes sense
-#             """)
-#             rows = cur.fetchall()
-    
-#     finally:
-#         conn.close()
-
-#     # iterates over all 110 objects in the table to provide dropdown list
-#     objects = [{"id": str(r[0]), "m_number": r[1], "common_name": r[2]} for r in rows]
-#     return render_template("index.html", user=current_user, objects=objects)
 
 
 # todo new dashboard() 8/21 testing
