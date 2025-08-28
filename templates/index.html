@@ -432,31 +432,29 @@
       <div class="container py-4">
         <div class="row g-4 align-items-center">
 
-          <!-- Col 1: Site logo -->
+          <!-- Site logo area -->
           <div class="col-12 col-md-4 text-center text-md-start">
             <a href="{{ url_for('dashboard') }}" class="d-inline-flex align-items-center text-decoration-none">
               <img
                 src="{{ url_for('static', filename='img/MyMessierTracker_header_V2.png') }}"
                 alt="My Messier Tracker"
-                style="height:40px; width:auto; filter: drop-shadow(0 0 6px rgba(221, 174, 211, 0.822));"
+                style="height:50px; width:auto;"
               >
             </a>
-            <div class="small text-muted mt-2">© 2025 My Messier Tracker</div>
+            <div class="small text mt-0">© 2025 My Messier Tracker</div>
           </div>
 
-          <!-- Col 2: Internal links -->
+          <!-- misc links like about page-->
           <div class="col-12 col-md-4 text-center">
             <nav class="nav justify-content-center gap-3">
-              <a class="nav-link px-0 text-light" href="{{ url_for('index') }}">Home</a>
+              <a class="nav-link px-0 text-light" href="{{ url_for('dashboard') }}">Home</a>
               <a class="nav-link px-0 text-light" href="{{ url_for('about') }}">About</a>
-              <a class="nav-link px-0 text-light" href="">Profile</a>
-              <!-- placeholders -->
-              <!-- <a class="nav-link px-0 text-light" href="{{ url_for('about') }}">About</a>
-              <a class="nav-link px-0 text-light" href="{{ url_for('profile') }}">Profile</a> -->
+              <a class="nav-link px-0 text-light" href="">Profile</a>  <!-- placeholder - maybe change to a Contact link?-->
+             
             </nav>
           </div>
 
-          <!-- Col 3: Social icons -->
+          <!-- testing with some social media icons -->
           <div class="col-12 col-md-4 text-center text-md-end">
             <div class="d-flex justify-content-center justify-content-md-end gap-3">
               <a class="text-light" href="https://github.com/StellarNavi" target="_blank" rel="noopener" aria-label="GitHub">

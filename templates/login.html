@@ -1,3 +1,4 @@
+<!-- User login page -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -7,7 +8,7 @@
   <style>
     body { 
       font-family: Arial, sans-serif; 
-      background:#0f1220; 
+      background:#1d1b24; 
       color:#e5e7eb; 
       display:flex; 
       flex-direction:column;   /*  logo above login section */
@@ -21,16 +22,16 @@
       margin-bottom:2rem; /* padding between logo and login */
     }
     .card { 
-      background:#151a2b; 
+      background:#63436970; 
       padding:2rem; 
       border-radius:16px; 
       width:100%; 
       max-width:380px; 
-      box-shadow:0 10px 30px rgba(0,0,0,0.3); 
+      box-shadow:0 10px 30px rgba(3, 13, 15, 0.486); 
     }
     label { display:block; margin:0 0 .25rem; font-size:.9rem; color:#9ca3af; }
     input[type="email"], input[type="password"] { 
-      width:100%; 
+      width:90%; 
       padding:.75rem .9rem; 
       border-radius:10px; 
       border:1px solid #29304a; 
@@ -60,6 +61,31 @@
       margin-bottom:1rem; 
     }
     .inline { display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:#cbd5e1; }
+    .btn-aurora{
+      background:#238b98; border-color:#238b98; color:#fff;
+    }
+    .btn-aurora:hover{
+      background:#40b1c0; border-color:#40b1c0; color:#fff;
+    }
+    .inline{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;   /* pushes link to the right */
+      font-size:.9rem; 
+      color:#cbd5e1;
+    }
+    .inline .left{
+      display:flex;
+      align-items:center;
+      gap:.5rem;
+    }
+    .new-account{
+      white-space:nowrap;
+      color:#40b1c0; 
+      font-weight:600; 
+      text-decoration:none;
+    }
+    .new-account:hover{ text-decoration:underline; color:#64dbe6; }
   </style>
 </head>
 <body>
@@ -73,6 +99,7 @@
     />
   </header>
 
+  <!-- sign in box area -->
   <div class="card">
     <h2 style="margin-top:0; margin-bottom:1rem;">Sign in</h2>
 
@@ -91,12 +118,20 @@
         <input id="password" name="password" type="password" autocomplete="current-password" required />
       </div>
 
-      <div class="row inline">
-        <input id="remember" name="remember" type="checkbox" />
-        <label for="remember" style="margin:0;">Remember me</label>
-      </div>
+      <!-- remember me and create new account link -->
 
-      <button class="btn" type="submit">Log in</button>
+
+      <div class="row inline">
+        <div class="left">
+          <input id="remember" name="remember" type="checkbox" />
+          <label for="remember" style="margin:0;">Remember me</label>
+        </div>
+        <a class="new-account" href="{{ url_for('register') }}">Create a new account</a>
+      </div>
+      
+      
+      <!-- login button -->
+      <button class="btn btn-aurora" type="submit">Log in</button>
     </form>
   </div>
 </body>
