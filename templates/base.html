@@ -1,0 +1,64 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>{% block title %}My Messier Tracker{% endblock %}</title>
+
+    <!-- Global CSS/Fonts once -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    <!-- One global starfield layer -->
+    <div id="particles-js"></div>
+
+    <!-- Page content goes here -->
+    <main class="container py-4" style="position:relative; z-index:1;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Global JS once -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        particlesJS('particles-js', {
+            particles: {
+                // type: star,
+                number: { value: 60, density: { enable: true, value_area: 800 } },
+                color: { value: "#9ca3af" }, //9ca3af, 6c63ff indigo
+                opacity: { value: 0.5, random: true },
+                size: { value: 2, random: true },
+                move: { enable: true, speed: 0.1 },
+                shape: {
+                    type: "star",
+                    polygon: { nb_sides: 5 }
+                },
+                size: {
+                    value: 10,
+                    random: true,
+                    anim: { enable: true, speed: 1.2, size_min: 0.8, sync: false }
+                }
+            },
+            interactivity: {
+                events: {
+                    onhover: { enable: false },
+                    onclick: { enable: false },
+                    resize: true
+                }
+            }
+            //   interactivity: { events: { onhover: { enable: false } } },
+            //   retina_detect: true
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

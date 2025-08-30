@@ -107,7 +107,15 @@ def dashboard():
                        COALESCE(mo.common_name,'') AS name,
                        je.observed_date,
                        je.body,
-                       i.file_path
+                       i.file_path,
+                       mo.constellation,
+                       mo.object_type,
+                       mo.ra_hours,
+                       mo.dec_degrees,
+                       mo.magnitude,
+                       mo.notes as description,
+                       mo.object_subtype,
+                       mo.url as nasa_url
                 FROM public.journal_entries je
                 JOIN public.messier_objects mo ON mo.id = je.messier_id
                 LEFT JOIN public.images i ON i.id = je.image_id
@@ -121,6 +129,14 @@ def dashboard():
                 "date": r[3],
                 "body": r[4],
                 "img": r[5],
+                "constellation": r[6],
+                "type":r[7],
+                "ra":r[8],
+                "dec":r[9],
+                "mag":r[10],
+                "desc":r[11],
+                "subtype":r[12],
+                "nasa_url":r[13]
             } for r in cur.fetchall()]
 
             # Progress numbers from DB

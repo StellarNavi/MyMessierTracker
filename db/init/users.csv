@@ -1,0 +1,4 @@
+id,email,user_name,password_hash,verified_email,created_at,updated_at
+a64f7287-d3a8-4a07-8694-eb0974538abc,test@test.com,NA$A,$2b$12$yewu61QacCeH7jnmnfGzo.XY8HbZiszTtzFxqzMZ5OdbsPCRu85Gy,true,2025-08-27 22:01:12.209361 +00:00,2025-08-27 22:01:12.209361 +00:00
+9c26ba8a-66fa-465f-93d0-5b531c176f37,test11@test.com,test11,$2b$12$tXMrabd./3b6YoqBmv0.nuW2lZ3mAtPXE9fC93rlCaXJ/pZlo5pZm,true,2025-08-28 01:06:14.351808 +00:00,2025-08-28 01:06:14.351808 +00:00
+8a6cf07f-4821-4388-85da-4d179fa229e4,tt@tt.com,tt,$2b$12$9Oc3YA3cT0VJgox2PGxpk.XCrwjQyB2ujyJQs57gBQAjGm2bNChyC,true,2025-08-28 01:14:01.613761 +00:00,2025-08-28 01:14:01.613761 +00:00

@@ -1,138 +1,64 @@
-<!-- User login page -->
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Login</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      background:#1d1b24; 
-      color:#e5e7eb; 
-      display:flex; 
-      flex-direction:column;   /*  logo above login section */
-      align-items:center; 
-      justify-content:center; 
-      min-height:100vh; 
-      margin:0;
-    }
-    header {
-      text-align:center;
-      margin-bottom:2rem; /* padding between logo and login */
-    }
-    .card { 
-      background:#63436970; 
-      padding:2rem; 
-      border-radius:16px; 
-      width:100%; 
-      max-width:380px; 
-      box-shadow:0 10px 30px rgba(3, 13, 15, 0.486); 
-    }
-    label { display:block; margin:0 0 .25rem; font-size:.9rem; color:#9ca3af; }
-    input[type="email"], input[type="password"] { 
-      width:90%; 
-      padding:.75rem .9rem; 
-      border-radius:10px; 
-      border:1px solid #29304a; 
-      background:#0e1322; 
-      color:#e5e7eb; 
-      outline:none; 
-    }
-    input:focus { border-color:#5563f2; }
-    .row { margin-bottom:1rem; }
-    .btn { 
-      width:100%; 
-      padding:.8rem 1rem; 
-      border:0; 
-      border-radius:12px; 
-      background:#5563f2; 
-      color:white; 
-      font-weight:600; 
-      cursor:pointer; 
-    }
-    .btn:hover { opacity:.95; }
-    .error { 
-      color:#fca5a5; 
-      background:#2a1b1b; 
-      border:1px solid #7f1d1d; 
-      padding:.6rem .8rem; 
-      border-radius:10px; 
-      margin-bottom:1rem; 
-    }
-    .inline { display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:#cbd5e1; }
-    .btn-aurora{
-      background:#238b98; border-color:#238b98; color:#fff;
-    }
-    .btn-aurora:hover{
-      background:#40b1c0; border-color:#40b1c0; color:#fff;
-    }
-    .inline{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;   /* pushes link to the right */
-      font-size:.9rem; 
-      color:#cbd5e1;
-    }
-    .inline .left{
-      display:flex;
-      align-items:center;
-      gap:.5rem;
-    }
-    .new-account{
-      white-space:nowrap;
-      color:#40b1c0; 
-      font-weight:600; 
-      text-decoration:none;
-    }
-    .new-account:hover{ text-decoration:underline; color:#64dbe6; }
-  </style>
-</head>
-<body>
-  <!-- new header with Image -->
-  <header>
+<!-- imports for reusability -->
+{% extends "base.html" %}
+{% block title %}Login · My Messier Tracker{% endblock %}
+
+{% block content %}
+  <!-- site logo image -->
+  <header class="text-center mb-4">
     <img
       src="{{ url_for('static', filename='img/MyMessierTracker_header_v2.png') }}"
+      alt="My Messier Tracker"
       class="img-fluid"
-      style="max-width: 980px; width: 60%; height: auto; filter: drop-shadow(0 0 8px rgba(123, 235, 243, 0));"
-      alt="Messier Tracker"
+      style="max-width: 980px; width: 60%; height: auto; filter: drop-shadow(0 0 8px rgba(223,223,223,0.02));"
     />
   </header>
 
-  <!-- sign in box area -->
-  <div class="card">
-    <h2 style="margin-top:0; margin-bottom:1rem;">Sign in</h2>
+  <!-- card for login -->
+  <div class="mx-auto" style="max-width: 420px;">
+    <div class="card border-0 shadow"
+         style="background:#1f1b2e; border-radius:16px;">
+      <div class="card-body p-4">
+        <h2 class="mb-3" style="color:#e0d9f5;">Sign in</h2>
 
-    {% if error %}
-      <div class="error">{{ error }}</div>
-    {% endif %}
+        {% if error %}
+          <div class="mb-3"
+               style="color:#fca5a5;background:#2a1b1b;border:1px solid #7f1d1d;padding:.6rem .8rem;border-radius:10px;">
+            {{ error }}
+          </div>
+        {% endif %}
 
-    <form method="post" action="{{ url_for('login') }}">
-      <div class="row">
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="username" required />
+        <form method="post" action="{{ url_for('login') }}">
+          <div class="mb-3">
+            <label for="email" class="form-label" style="color:#9ca3af;">Email</label>
+            <input id="email" name="email" type="email" autocomplete="username" required
+                   class="form-control"
+                   style="padding:.75rem .9rem;border-radius:10px;border:1px solid #29304a;background:#0e1322;color:#e5e7eb;"/>
+          </div>
+
+          <div class="mb-3">
+            <label for="password" class="form-label" style="color:#9ca3af;">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required
+                   class="form-control"
+                   style="padding:.75rem .9rem;border-radius:10px;border:1px solid #29304a;background:#0e1322;color:#e5e7eb;"/>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-3" style="color:#cbd5e1;">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="remember" name="remember">
+              <label class="form-check-label" for="remember">Remember me</label>
+            </div>
+            <a class="text-decoration-none" href="{{ url_for('register') }}" style="color:#a77b9d;">
+              Create an account
+            </a>
+          </div>
+
+          <button class="btn w-100"
+                  type="submit"
+                  style="background:#6c63ff;border:none;color:#fff;font-weight:700;border-radius:12px;padding:.9rem 1rem;">
+            Log in
+          </button>
+        </form>
       </div>
-
-      <div class="row">
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required />
-      </div>
-
-      <!-- remember me and create new account link -->
-
-
-      <div class="row inline">
-        <div class="left">
-          <input id="remember" name="remember" type="checkbox" />
-          <label for="remember" style="margin:0;">Remember me</label>
-        </div>
-        <a class="new-account" href="{{ url_for('register') }}">Create a new account</a>
-      </div>
-      
-      
-      <!-- login button -->
-      <button class="btn btn-aurora" type="submit">Log in</button>
-    </form>
+    </div>
   </div>
-</body>
-</html>
+{% endblock %}

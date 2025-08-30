@@ -1,60 +1,72 @@
- <!-- # Page for firsst time user registrations -->
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Create Account</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body { font-family: Arial, sans-serif; background:#1d1b24; color:#e5e7eb; display:flex; min-height:100vh; align-items:center; justify-content:center; }
-    .card { background:#63436970; padding:2rem; border-radius:16px; width:100%; max-width:420px; box-shadow:0 10px 30px rgba(0,0,0,0.3); }
-    label { display:block; margin:0 0 .25rem; font-size:.9rem; color:#9ca3af; }
-    input { width:100%; padding:.75rem .9rem; border-radius:10px; border:1px solid #29304a; background:#0e1322; color:#e5e7eb; outline:none; }
-    input:focus { border-color:#5563f2; }
-    .row { margin-bottom:1rem; }
-    .btn { width:100%; padding:.8rem 1rem; border:0; border-radius:12px; background:#238b98; color:white; font-weight:600; cursor:pointer; }
-    .btn:hover { opacity:.95; }
-    .error { color:#fca5a5; background:#2a1b1b; border:1px solid #7f1d1d; padding:.6rem .8rem; border-radius:10px; margin-bottom:1rem; }
-    .muted { margin-top:1rem; text-align:center; color:#e4b1d9; }
-    a { color:#e4b1d9; text-decoration:none; }
-    a:hover { text-decoration:underline; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h2 style="margin-top:0; margin-bottom:1rem;">Create Account</h2>
+<!-- imports for reusability -->
+{% extends "base.html" %}
+{% block title %}Create Account · My Messier Tracker{% endblock %}
 
-    {% if error %}
-      <div class="error">{{ error }}</div>
-    {% endif %}
+{% block content %}
+  <!-- site logo image -->
+  <header class="text-center mb-4">
+    <img
+      src="{{ url_for('static', filename='img/MyMessierTracker_header_v2.png') }}"
+      alt="My Messier Tracker"
+      class="img-fluid"
+      style="max-width: 980px; width: 60%; height: auto; filter: drop-shadow(0 0 8px rgba(223,223,223,0.02));"
+    />
+  </header>
 
-    <form method="post" action="{{ url_for('register') }}">
-      <div class="row">
-        <label for="user_name">Display name</label>
-        <input id="user_name" name="user_name" type="text" required />
+  <!-- card for registration -->
+  <div class="mx-auto" style="max-width: 420px;">
+    <div class="card border-0 shadow" style="background:#1f1b2e; border-radius:16px;">
+      <div class="card-body p-4">
+        <h2 class="mb-3" style="color:#e0d9f5;">Create Account</h2>
+
+        {% if error %}
+          <div class="mb-3"
+               style="color:#fca5a5;background:#2a1b1b;border:1px solid #7f1d1d;padding:.6rem .8rem;border-radius:10px;">
+            {{ error }}
+          </div>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('register') }}">
+          <div class="mb-3">
+            <label for="user_name" class="form-label" style="color:#9ca3af;">Display name</label>
+            <input id="user_name" name="user_name" type="text" required
+                   class="form-control"
+                   style="padding:.75rem .9rem;border-radius:10px;border:1px solid #29304a;background:#0e1322;color:#e5e7eb;"/>
+          </div>
+
+          <div class="mb-3">
+            <label for="email" class="form-label" style="color:#9ca3af;">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required
+                   class="form-control"
+                   style="padding:.75rem .9rem;border-radius:10px;border:1px solid #29304a;background:#0e1322;color:#e5e7eb;"/>
+          </div>
+
+          <div class="mb-3">
+            <label for="password" class="form-label" style="color:#9ca3af;">Password</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" required
+                   class="form-control"
+                   style="padding:.75rem .9rem;border-radius:10px;border:1px solid #29304a;background:#0e1322;color:#e5e7eb;"/>
+          </div>
+
+          <div class="mb-3">
+            <label for="confirm" class="form-label" style="color:#9ca3af;">Confirm password</label>
+            <input id="confirm" name="confirm" type="password" autocomplete="new-password" required
+                   class="form-control"
+                   style="padding:.75rem .9rem;border-radius:10px;border:1px solid #29304a;background:#0e1322;color:#e5e7eb;"/>
+          </div>
+
+          <button class="btn w-100"
+                  type="submit"
+                  style="background:#6c63ff;border:none;color:#fff;font-weight:700;border-radius:12px;padding:.9rem 1rem;">
+            Create account
+          </button>
+        </form>
+
+        <div class="d-flex justify-content-center mt-3" style="color:#e0d9f5;">
+          <span class="me-1">Already have an account?</span>
+          <a href="{{ url_for('login') }}" class="text-decoration-none" style="color:#a77b9d;">Log in</a>
+        </div>
       </div>
-
-      <div class="row">
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="email" required />
-      </div>
-
-      <div class="row">
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="new-password" required />
-      </div>
-
-      <div class="row">
-        <label for="confirm">Confirm password</label>
-        <input id="confirm" name="confirm" type="password" autocomplete="new-password" required />
-      </div>
-
-      <button class="btn" type="submit">Create account</button>
-    </form>
-
-    <div class="muted">
-      Already have an account? <a href="{{ url_for('login') }}">Log in</a>
     </div>
   </div>
-</body>
-</html>
+{% endblock %}

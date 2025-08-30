@@ -5,13 +5,15 @@
   <title>About • My Messier Tracker</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body style="background:#1d1b24; color:#f4f2f5;">
-  <div class="container py-5">
+<body style="background:#151416; color:#f4f2f5;">
+  <div class="container py-4">
     <h1>About</h1>
-    <p class="mt-3">The My Messier Tracker aims to help you track and journal your Messier-object observations.</p>
-    
+    <p class="mt-3">MyMessierTracker is your personal logbook for tracking your progress of capturing the Messier catalogue. 
+                    It aims to help you track and journal your Messier-object observations while inspiring astrophotographers to 
+                    continue gazing upward and capturing the wonders of the night sky.</p>
   </div>
-  <div class="container py-5">
+
+  <div class="container py-2">
     <h1>What is the Messier Catalogue?</h1>
     <p class="mt-3">The Messier Catalogue is a list of 110 deep-sky objects (DSOs) compiled in the 18th 
         century by French astronomer Charles Messier. Originally, Messier was a comet hunter inspired by 
@@ -29,20 +31,64 @@
         highlight the beauty and mystery of the universe.
     </p>
     <p class="mt-3">
+      <a >Sources: </a>
         <a href="https://science.nasa.gov/people/explore-the-night-sky-hubbleatms-messier-catalog-bio/">
             NASA: Charles Messier (1730–1817) Astronomer
-        </a> 
-    </p>
-    <p class="mt-3">
+        </a>
+        <a >, </a>
         <a href="https://archive.org/details/messier-catalogue-des-nebuleuses-et-des-amas-detoiles.../mode/2up?">
             Catalogue des Nebuleuses et des Amas D'etoiles
-        </a>   
+        </a>  
     </p>
     <!-- <a class="btn btn-outline-light mt-3" href="{{ url_for('dashboard') }}">← Back to Dashboard/Index tempate</a> -->
     <a class="btn btn-outline-light mt-3" href="{{ url_for('dashboard') }}">← Back to Dashboard</a>  
 </div>
   
 </body>
+
+<!-- page footer -->
+<footer class="mt-5" style="position:relative; z-index:1; border-top:2px solid #8b537f; background-color:#1a1a1a;">
+  <div class="container py-4">
+    <div class="row g-4 align-items-center">
+
+      <!-- Site logo area -->
+      <div class="col-12 col-md-4 text-center text-md-start">
+        <a href="{{ url_for('dashboard') }}" class="d-inline-flex align-items-center text-decoration-none">
+          <img src="{{ url_for('static', filename='img/MyMessierTracker_header_V2.png') }}" alt="My Messier Tracker"
+            style="height:50px; width:auto;">
+        </a>
+        <div class="small text mt-0">© 2025 My Messier Tracker</div>
+      </div>
+
+      <!-- misc links like about page-->
+      <div class="col-12 col-md-4 text-center">
+        <nav class="nav justify-content-center gap-3">
+          <a class="nav-link px-0 text-light" href="{{ url_for('dashboard') }}">Home</a>
+          <a class="nav-link px-0 text-light" href="{{ url_for('about') }}">About</a>
+          <a class="nav-link px-0 text-light" href="">Profile</a> <!-- placeholder - maybe change to a Contact link?-->
+
+        </nav>
+      </div>
+
+      <!-- testing with some social media icons -->
+      <div class="col-12 col-md-4 text-center text-md-end">
+        <div class="d-flex justify-content-center justify-content-md-end gap-3">
+          <a class="text-light" href="https://github.com/StellarNavi" target="_blank" rel="noopener"
+            aria-label="GitHub">
+            <i class="bi bi-github fs-4"></i>
+          </a>
+          <!-- placeholders, just examples for now - may remove? -->
+          <a class="text-light" href="https://x.com/NASA" target="_blank" rel="noopener" aria-label="X (Twitter)">
+            <i class="bi bi-twitter-x fs-4"></i>
+          </a>
+          <a class="text-light" href="https://instagram.com/NASA" target="_blank" rel="noopener" aria-label="Instagram">
+            <i class="bi bi-instagram fs-4"></i>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</footer>
+
 </html>
-<!-- todo: change background color to be consistent with home bg -->
-<!-- todo: add "what is the Messier Catalogue?" -->
