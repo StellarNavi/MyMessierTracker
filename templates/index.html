@@ -343,10 +343,11 @@
   var nebulaeDone  = {{ (user.progress.nebulae|default(user.progress.nebulea, true)|default(0,true))|int }};
   var clustersDone = {{ (user.progress.star_clusters|default(0,true))|int }};
 
-  // Hard-coded catalog totals for baseline (these are not changing so this is viable)
-  var totalGalaxies = 40;
-  var totalNebulae  = 14;
-  var totalClusters = 56;
+  // Donut Chart KPIs
+  var totals = {{ catalog_totals | tojson }};
+  var totalGalaxies = (totals && totals["Galaxy"]) || 0;
+  var totalNebulae  = (totals && totals["Nebula"]) || 0;
+  var totalClusters = (totals && totals["Star Cluster"]) || 0;
 
   function donut(container, completed, total, label) {  //************************************************************** DONUT CHARTS
     completed = Math.max(0, Math.min(completed, total));

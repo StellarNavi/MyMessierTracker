@@ -88,6 +88,18 @@ def dashboard():
             """)
             objects = [{"id": str(r[0]), "m_number": r[1], "common_name": r[2]} for r in cur.fetchall()]
 
+            # get number of each type for donut KPIs
+            cur.execute("""
+                SELECT object_type, count(*)
+                FROM messier_objects
+                GROUP BY object_type
+            """)
+            rows = cur.fetchall()
+            catalog_totals = {'Galaxy': 0, 'Nebula': 0, 'Star Cluster':0}
+            for a, b in rows:
+                if a in catalog_totals:
+                    catalog_totals[a] = int(b)
+            
             # Journal entries list (latest first)
             cur.execute("""
                 SELECT je.id,
@@ -136,7 +148,8 @@ def dashboard():
 
     # attach progress to the current_user for template compatibility
     current_user.progress = progress
-    return render_template("index.html", user=current_user, objects=objects, entries=entries)
+    return render_template("index.html", user=current_user, objects=objects, entries=entries, 
+                           catalog_totals=catalog_totals)
 
 
 
