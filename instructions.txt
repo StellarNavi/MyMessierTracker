@@ -2,7 +2,7 @@
 
 * If needed, install docker desktop: https://www.docker.com/products/docker-desktop/
 
-* if needed install python 3.10+
+*  if needed install python 3.12+ (python 3.12 was used here)
 
 * navigate powershell directory to root of project (my_messier_tracker). This file (instructions.txt) is in the folder.
 

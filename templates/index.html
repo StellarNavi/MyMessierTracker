@@ -98,7 +98,7 @@
         <!-- use Jinja2 to build out a dynamic table for user journal -->
         {% if entries and entries|length %}
         <div class="table-responsive">
-          <table class="table-sm align-middle mb-0">
+          <table class="table-sm align-middle mb-0 w-100" style="background-color:transparent;">
             <thead>
               <tr>
                 <th style="width:90px;">Image</th>
@@ -130,7 +130,7 @@
           </table>
         </div>
         {% else %}
-        <em>No entries yet. Click the <i class="bi bi-plus-lg"></i> to add your first.</em>
+        <em>No entries yet. Click the  <i class="bi bi-journal-plus"></i> icon in the bottom right to begin adding observations!</em>
         {% endif %}
       </div>
 
@@ -272,11 +272,11 @@
             enableMouseTracking: false,
             data: [{ y: remaining }],
             dataLabels: {
-              // if nothing collected yet, show the label centered on the track, this way its easier to read
-              enabled: collected === 0,
+              // if less than 20 objects collected, show the label centered on the track -  easier to read
+              enabled: collected < 20,
               inside: true,
-              // formatter: function () { return collected + ' / ' + catalog + ' (' + pct + '%)'; },
-              style: { textOutline: 'none', fontWeight: 'bold', color: '#cbb0d6' }
+              formatter: function () { return collected + ' / ' + catalog + ' (' + pct + '%)'; },
+              style: { textOutline: 'none', fontWeight: 'bold', color: '#cbb0d6', fontSize: '16px' }
             }
           },
           {
@@ -284,7 +284,7 @@
             color: '#238b98', //change prog bar color
             data: [{ y: collected, className: 'hc-glow' }],
             dataLabels: {
-              enabled: collected > 0,           // show label on the filled part
+              enabled: collected > 19,           
               inside: true,
               formatter: function () { return collected + ' / ' + catalog + ' (' + pct + '%)'; },
               style: { textOutline: 'none', fontWeight: 'bold', color: '#f2f6fa', fontSize: '16px' }
@@ -406,6 +406,7 @@
           <img src="{{ url_for('static', filename='img/MyMessierTracker_header_V2.png') }}" alt="My Messier Tracker"
             style="height:50px; width:auto;">
         </a>
+        <!-- for a professional look? -->
         <div class="small text mt-0">© 2025 My Messier Tracker</div>
       </div>
 
