@@ -69,3 +69,52 @@ body {
   color: #9b78a3;
   font-style: italic;
 }
+
+.view-object {
+  color: #fff !important;
+}
+
+/* Outer container: two columns ALWAYS, centered and width-capped */
+.specs-2col{
+  display:grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr); /* always two columns */
+  column-gap: 48px;    /* space between the two columns */
+  row-gap: 0;
+  width: 100%;
+  max-width: 900px;    /* keeps it tidy under the image */
+}
+
+/* Each column: fixed label width + flexible value */
+.specs-list{
+  margin:0;
+  display:grid;
+  grid-template-columns: 160px 1fr;  /* label | value */
+  column-gap: 12px;
+  row-gap: 10px;
+  align-items:start;
+  min-width:0;                        /* allow wrapping */
+}
+
+/* Labels */
+.specs-list dt{
+  margin:0;
+  font-weight:700;
+  color:#e9e7ee;
+  white-space:nowrap;                 /* prevent label wrap */
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* Values */
+.specs-list dd{
+  margin:0;
+  color:#cfcfe6;
+  overflow-wrap:anywhere;             /* wrap long values instead of overlapping */
+  word-break:break-word;
+  min-width:0;
+}
+
+/* Optional: tighten on huge screens */
+@media (min-width: 1400px){
+  .specs-list{ grid-template-columns: 180px 1fr; }
+}

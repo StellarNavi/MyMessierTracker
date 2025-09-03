@@ -107,6 +107,7 @@
                 <th style="width:200px;">Type</th>
                 <th style="width:200px;">Constellation</th>
                 <th style="width:140px;">Date Captured</th>
+                <th style="width:140px;">More Details</th>
               </tr>
             </thead>
             <tbody>
@@ -117,12 +118,21 @@
                   <img src="{{ e.img }}" alt="thumb" style="width:64px;height:64px;object-fit:cover;border-radius:5px;border-style: solid;
                             border-width: thin;border-color: #8d9edb;">
                   {% endif %}
+
                 </td>
                 <td> M{{ e.m_number }} </td>
                 <td> {{ e.name }} </td>
                 <td> {{ e.type }} </td>
                 <td> {{ e.constellation }} </td>
                 <td> {{ e.date }} </td>
+                <!-- includes list of fields to pass to the pop-up once clicked  -->
+                <td><button type="button" class="btn btn-lg view-object" title="View details"
+                    data-messier="{{ e.messier_number }}" data-name="{{ e.name }}" data-notes="{{ e.fun_fact }}"
+                    data-img="{{ e.img }}" data-constellation="{{ e.constellation }}" data-object-type="{{ e.type }}"
+                    data-object-subtype="{{ e.subtype }}" data-ra="{{ e.ra }}" data-dec="{{ e.dec }}"
+                    data-mag="{{ e.mag }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}">
+                    <i class="bi bi-box-arrow-up-right Large"></i>
+                  </button></td>
 
               </tr>
               {% endfor %}
@@ -130,7 +140,8 @@
           </table>
         </div>
         {% else %}
-        <em>No entries yet. Click the  <i class="bi bi-journal-plus"></i> icon in the bottom right to begin adding observations!</em>
+        <em>No entries yet. Click the <i class="bi bi-journal-plus"></i> icon in the bottom right to begin adding
+          observations!</em>
         {% endif %}
       </div>
 
@@ -205,7 +216,7 @@
             <!-- text to let user know to click here to logout -->
             <i class=""></i>Click to Logout
           </a>
-          <!-- PLACEHOLDR for additional options -->
+          <!-- PLACEHOLDER for additional options -->
           <!-- <b class="dropdown-item" href="">
               <i class=""></i>Pending
             </b> -->
@@ -284,7 +295,7 @@
             color: '#238b98', //change prog bar color
             data: [{ y: collected, className: 'hc-glow' }],
             dataLabels: {
-              enabled: collected > 19,           
+              enabled: collected > 19,
               inside: true,
               formatter: function () { return collected + ' / ' + catalog + ' (' + pct + '%)'; },
               style: { textOutline: 'none', fontWeight: 'bold', color: '#f2f6fa', fontSize: '16px' }
@@ -393,6 +404,127 @@
     })();
   </script>
 
+  <!-- po-up for seeing the journal entry in more details -->
+  <script>
+    // funciton to show the modal
+    function openObjectModal(d) {
+      const setText = (id, val) => document.getElementById(id).textContent = (val ?? '—');
+
+      document.getElementById('objectModalTitle').textContent =
+        `Messier ${d.messier_number}: ${d.common_name || ''}`.trim();
+
+      setText('objectNotes', d.notes);
+      const imgEl = document.getElementById('objectImage');
+      imgEl.src = d.img || '';
+      imgEl.alt = `Messier ${d.messier_number} - ${d.common_name || ''}`;
+
+      setText('objectConstellation', d.constellation);
+      setText('objectType', d.object_type);
+      setText('objectSubtype', d.object_subtype);
+      setText('objectRA', d.ra_hours);
+      setText('objectDec', d.dec_degrees);
+      setText('objectMag', d.magnitude);
+      setText('obsDate', d.observation_date);
+
+      // Journal text may have newlines; it’s safely rendered as text
+      const j = document.getElementById('journalText');
+      j.textContent = d.journal_text || '';
+
+      new bootstrap.Modal(document.getElementById('objectModal')).show();
+    }
+
+    // Delegate click handler for buttons with .view-object
+    document.addEventListener('click', function (ev) {
+      const btn = ev.target.closest('.view-object');
+      if (!btn) return;
+
+      const d = {
+        messier_number: btn.dataset.messier,
+        common_name: btn.dataset.name,
+        notes: btn.dataset.notes,
+        img: btn.dataset.img,
+        constellation: btn.dataset.constellation,
+        object_type: btn.dataset.objectType,
+        object_subtype: btn.dataset.objectSubtype,
+        ra_hours: btn.dataset.ra,
+        dec_degrees: btn.dataset.dec,
+        magnitude: btn.dataset.mag,
+        observation_date: btn.dataset.obs,
+        journal_text: btn.dataset.journal
+      };
+
+      openObjectModal(d);
+    });
+  </script>
+
+  <!-- Object Detail Modal -->
+  <div class="modal fade" id="objectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content" style="background:#1d1b24; color:#e5e7eb; border:2px solid #6b507c;">
+        <div class="modal-header" style="border-bottom:2px solid #a97fc4;">
+          <h3 class="modal-title" id="objectModalTitle">Messier ##: Name</h3>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Fun facts / notes from messier_objects.notes -->
+          <div id="objectNotes" class="mb-3 text-center" style="color:#ffffff;"></div>
+
+          <!-- Large image -->
+          <div class="mb-3 text-center">
+            <img id="objectImage" class="img-fluid rounded" alt="" style="max-height:60vh; object-fit:contain;">
+          </div>
+
+          <!-- 3 rows x 2 columns (summary misc info tables) -->
+          <div class="mt-4 d-flex justify-content-center">
+            <div class="specs-2col">
+              <!-- LEFT column -->
+              <dl class="specs-list">
+                <dt>Constellation</dt>
+                <dd id="objectConstellation">—</dd>
+                <dt>Object</dt>
+                <dd id="objectType">—</dd>
+                <dt>Subtype</dt>
+                <dd id="objectSubtype">—</dd>
+              </dl>
+
+              <!-- RIGHT column -->
+              <dl class="specs-list">
+                <dt>RA (hrs)</dt>
+                <dd id="objectRA">—</dd>
+                <dt>Dec (°)</dt>
+                <dd id="objectDec">—</dd>
+                <dt>Magnitude</dt>
+                <dd id="objectMag">—</dd>
+              </dl>
+            </div>
+          </div>
+
+          <hr class="my-3" style="border-color:#6b507c; opacity:.5;">
+
+          <!-- User observation details -->
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="">Observation Date:</div>
+              <div id="obsDate"></div>
+            </div>
+            <div class="col-md-8">
+              <div class="">Journal Notes:</div>
+              <div id="journalText" class="whitespace-prewrap"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    /* preserve user-entered line breaks */
+    .whitespace-prewrap {
+      white-space: pre-wrap;
+    }
+  </style>
+
 
 </body>
 <!-- page footer -->
@@ -430,7 +562,7 @@
           <a class="text-light" href="https://x.com/NASA" target="_blank" rel="noopener" aria-label="X (Twitter)">
             <i class="bi bi-twitter-x fs-4"></i>
           </a>
-          <a class="text-light" href="https://instagram.com/NASA" target="_blank" rel="noopener" aria-label="Instagram">
+          <a class="text-light" href="https://www.instagram.com/stellarnavi/" target="_blank" rel="noopener" aria-label="Instagram">
             <i class="bi bi-instagram fs-4"></i>
           </a>
         </div>

@@ -100,7 +100,8 @@ def dashboard():
                 if a in catalog_totals:
                     catalog_totals[a] = int(b)
             
-            # Journal entries list (latest first)
+            # Main dataset for all journal entries plus additional messier 
+            # object details (sorted by latest first as debault)
             cur.execute("""
                 SELECT je.id,
                        mo.messier_number,
@@ -115,7 +116,8 @@ def dashboard():
                        mo.magnitude,
                        mo.notes as description,
                        mo.object_subtype,
-                       mo.url as nasa_url
+                       mo.url as nasa_url,
+                       mo.notes
                 FROM public.journal_entries je
                 JOIN public.messier_objects mo ON mo.id = je.messier_id
                 LEFT JOIN public.images i ON i.id = je.image_id
@@ -136,7 +138,8 @@ def dashboard():
                 "mag":r[10],
                 "desc":r[11],
                 "subtype":r[12],
-                "nasa_url":r[13]
+                "nasa_url":r[13],
+                "fun_fact":r[14]
             } for r in cur.fetchall()]
 
             # Progress numbers from DB
