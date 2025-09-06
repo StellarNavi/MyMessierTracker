@@ -127,10 +127,10 @@
                 <td> {{ e.date }} </td>
                 <!-- includes list of fields to pass to the pop-up once clicked  -->
                 <td><button type="button" class="btn btn-lg view-object" title="View details"
-                    data-messier="{{ e.messier_number }}" data-name="{{ e.name }}" data-notes="{{ e.fun_fact }}"
-                    data-img="{{ e.img }}" data-constellation="{{ e.constellation }}" data-object-type="{{ e.type }}"
-                    data-object-subtype="{{ e.subtype }}" data-ra="{{ e.ra }}" data-dec="{{ e.dec }}"
-                    data-mag="{{ e.mag }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}">
+                    data-title="{{e.obj_title}}" data-messier="{{ e.m_number }}" data-name="{{ e.name }}"
+                    data-notes="{{ e.fun_fact }}" data-img="{{ e.img }}" data-constellation="{{ e.constellation }}"
+                    data-object-type="{{ e.type }}" data-object-subtype="{{ e.subtype }}" data-ra="{{ e.ra }}"
+                    data-dec="{{ e.dec }}" data-mag="{{ e.mag }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}">
                     <i class="bi bi-box-arrow-up-right Large"></i>
                   </button></td>
 
@@ -404,20 +404,20 @@
     })();
   </script>
 
-  <!-- po-up for seeing the journal entry in more details -->
+  <!-- pop-up for seeing the object data and journal entry in more detail -->
   <script>
     // funciton to show the modal
     function openObjectModal(d) {
       const setText = (id, val) => document.getElementById(id).textContent = (val ?? '—');
 
-      document.getElementById('objectModalTitle').textContent =
-        `Messier ${d.messier_number}: ${d.common_name || ''}`.trim();
+      document.getElementById('objectModalTitle').textContent = d.obj_title || '';
 
-      setText('objectNotes', d.notes);
+
       const imgEl = document.getElementById('objectImage');
       imgEl.src = d.img || '';
-      imgEl.alt = `Messier ${d.messier_number} - ${d.common_name || ''}`;
+      imgEl.alt = d.obj_title || ''; //test
 
+      setText('objectNotes', d.notes);
       setText('objectConstellation', d.constellation);
       setText('objectType', d.object_type);
       setText('objectSubtype', d.object_subtype);
@@ -433,16 +433,15 @@
       new bootstrap.Modal(document.getElementById('objectModal')).show();
     }
 
-    // Delegate click handler for buttons with .view-object
+    // click handler for .view-object btns
     document.addEventListener('click', function (ev) {
       const btn = ev.target.closest('.view-object');
       if (!btn) return;
 
       const d = {
-        messier_number: btn.dataset.messier,
-        common_name: btn.dataset.name,
-        notes: btn.dataset.notes,
+        obj_title: btn.dataset.title,
         img: btn.dataset.img,
+        notes: btn.dataset.notes,
         constellation: btn.dataset.constellation,
         object_type: btn.dataset.objectType,
         object_subtype: btn.dataset.objectSubtype,
@@ -462,18 +461,20 @@
     <div class="modal-dialog modal-dialog-centered modal-xl">
       <div class="modal-content" style="background:#1d1b24; color:#e5e7eb; border:2px solid #6b507c;">
         <div class="modal-header" style="border-bottom:2px solid #a97fc4;">
-          <h3 class="modal-title" id="objectModalTitle">Messier ##: Name</h3>
+          <h3 class="modal-title" id="objectModalTitle"></h3>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
         <div class="modal-body">
-          <!-- Fun facts / notes from messier_objects.notes -->
-          <div id="objectNotes" class="mb-3 text-center" style="color:#ffffff;"></div>
+
 
           <!-- Large image -->
           <div class="mb-3 text-center">
             <img id="objectImage" class="img-fluid rounded" alt="" style="max-height:60vh; object-fit:contain;">
           </div>
+
+          <!-- Fun facts / notes from messier_objects.notes -->
+          <div id="objectNotes" class="mb-3 text-center" style="color:#ffffff;"></div>
 
           <!-- 3 rows x 2 columns (summary misc info tables) -->
           <div class="mt-4 d-flex justify-content-center">
@@ -562,7 +563,8 @@
           <a class="text-light" href="https://x.com/NASA" target="_blank" rel="noopener" aria-label="X (Twitter)">
             <i class="bi bi-twitter-x fs-4"></i>
           </a>
-          <a class="text-light" href="https://www.instagram.com/stellarnavi/" target="_blank" rel="noopener" aria-label="Instagram">
+          <a class="text-light" href="https://www.instagram.com/stellarnavi/" target="_blank" rel="noopener"
+            aria-label="Instagram">
             <i class="bi bi-instagram fs-4"></i>
           </a>
         </div>

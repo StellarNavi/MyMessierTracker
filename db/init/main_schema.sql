@@ -1,3 +1,4 @@
+-- this file will tell docker how to generate the database
 -- Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS citext;
@@ -5,6 +6,8 @@ CREATE EXTENSION IF NOT EXISTS citext;
 
 
 -- MESSIER OBJECTS -------------------------------------------------------------
+  -- purpose: main table that stores data pertaining to the messier objects like the
+  -- Messier number, the type, location, etc
 CREATE TABLE IF NOT EXISTS public.messier_objects (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   messier_number INT NOT NULL UNIQUE CHECK (messier_number BETWEEN 1 AND 110),
@@ -23,6 +26,10 @@ CREATE TABLE IF NOT EXISTS public.messier_objects (
 );
 
 -- USERS -----------------------------------------------------------------------
+  -- purpose: stores one record per registered user of the Messier Tracker App and 
+  -- acts as the core identity table for other tables to connect user data to. For 
+  -- example many other tables will have a FK for a user such as images, progress 
+  -- and journal entries.
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email CITEXT NOT NULL UNIQUE,
@@ -34,6 +41,9 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 -- IMAGES ----------------------------------------------------------------------
+  -- purpose: stores all information for images uploaded by users with metadata, 
+  -- notes, audit fields like when it was logged, etc. It does not directly include
+  -- messier object tags as that will be a separate table
 CREATE TABLE IF NOT EXISTS public.images (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id   UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -45,6 +55,10 @@ CREATE TABLE IF NOT EXISTS public.images (
 );
 
 -- USER OBJECT IMAGE (one image per user per object) --------------------------------
+  -- purpose: bridges the uploaded messier image with the information of the user who 
+  -- uploaded it. uoi_user_object_unique  will help ensure that only one image per 
+  -- object per user, preventing redundant data and keeping the app fast and uncluttered
+  --  as it grows (it will also help with error handling).
 CREATE TABLE IF NOT EXISTS public.user_object_images (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id    UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -54,10 +68,16 @@ CREATE TABLE IF NOT EXISTS public.user_object_images (
   CONSTRAINT uoi_user_object_unique UNIQUE (user_id, messier_id)
 );
 
+-- INDEXES
+  -- inedxes are good practice and will help with more efficient joins and the
+  -- per-user/per-object lookups
 CREATE INDEX IF NOT EXISTS uoi_user_idx    ON public.user_object_images(user_id);
 CREATE INDEX IF NOT EXISTS uoi_messier_idx ON public.user_object_images(messier_id);
 
 -- USER JKOURNAL ENTRIES -------------------------------------------------------------
+  -- purpose: stores user notes pertaining to the messier objects they have loaded to 
+  -- the app. it allows the user to capture any additional detail such as imaging 
+  -- session length and other details or even personal commentary. 
 CREATE TABLE IF NOT EXISTS public.journal_entries (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id    UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,

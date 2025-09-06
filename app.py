@@ -1,18 +1,26 @@
-# initiallize main Flask app entry point
+# initiallize main Flask app entry
 
 #imports
-from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_bcrypt import Bcrypt
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user    # testing       
-import psycopg2
-from config import Config
-import uuid, os, mimetypes
 from datetime import datetime
-from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
-import os, secrets
-load_dotenv()  # make .env values available
+import mimetypes    # for img upload
+import os
+import secrets
+import uuid         # generate unique ids for img names
 
+import psycopg2
+from dotenv import load_dotenv
+from flask import (Flask, render_template,              # core Flask app functionality for requests and responses
+                   request, redirect, url_for, flash)
+from flask_bcrypt import Bcrypt                         # password hash
+from flask_login import (LoginManager, UserMixin,       # authentication handling
+                         login_user, logout_user, 
+                         login_required, current_user)
+from werkzeug.utils import secure_filename
+from config import Config
+
+
+
+# *************************** CONTINUE CLEANING FROM HERE DOWN !!!
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -117,7 +125,8 @@ def dashboard():
                        mo.notes as description,
                        mo.object_subtype,
                        mo.url as nasa_url,
-                       mo.notes
+                       mo.notes as fun_fact,      
+                       'M' || mo.messier_number::varchar || ': ' || mo.common_name as obj_title
                 FROM public.journal_entries je
                 JOIN public.messier_objects mo ON mo.id = je.messier_id
                 LEFT JOIN public.images i ON i.id = je.image_id
@@ -139,7 +148,8 @@ def dashboard():
                 "desc":r[11],
                 "subtype":r[12],
                 "nasa_url":r[13],
-                "fun_fact":r[14]
+                "fun_fact":r[14],
+                "obj_title":r[15]
             } for r in cur.fetchall()]
 
             # Progress numbers from DB

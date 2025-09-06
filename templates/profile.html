@@ -1,5 +1,5 @@
-<!-- user profile page -->
- <!-- will display only if the login was successful -->
+<!-- user profile page testing.....-->
+<!-- still developing -->
 
 <!doctype html>
 <html lang="en">
@@ -16,7 +16,7 @@
 </head>
 <body>
   <h1>Welcome, {{ user.user_name or user.email }}</h1>
-  <p>Your email: {{ user.email }}</p>
   <p><a href="{{ url_for('logout') }}">Log out</a></p>
+  <!-- add a delete account feature? follows the right to be forgotten policy -->
 </body>
 </html>
