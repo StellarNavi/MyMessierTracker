@@ -1,57 +1,62 @@
-# initiallize main Flask app entry
+# initiallize main Flask app 
 
 #imports
 from datetime import datetime
-import mimetypes    # for img upload
+
+# for img upload
+import mimetypes    
 import os
 import secrets
-import uuid         # generate unique ids for img names
 
+# generate unique ids for img names
+import uuid         
 import psycopg2
 from dotenv import load_dotenv
-from flask import (Flask, render_template,              # core Flask app functionality for requests and responses
-                   request, redirect, url_for, flash)
-from flask_bcrypt import Bcrypt                         # password hash
-from flask_login import (LoginManager, UserMixin,       # authentication handling
-                         login_user, logout_user, 
+
+# core Flask app functionality for requests and responses
+from flask import (Flask, render_template, request, redirect, url_for, flash)
+
+# password hash
+from flask_bcrypt import Bcrypt
+
+# authentication handling                         
+from flask_login import (LoginManager, UserMixin, login_user, logout_user, 
                          login_required, current_user)
+
 from werkzeug.utils import secure_filename
 from config import Config
 
 
-
-# *************************** CONTINUE CLEANING FROM HERE DOWN !!!
-
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# ensure SECRET_KEY exists before anything touches session/flash
+# get secret key for session cookies, security (prevents tampering) prior to loading
 app.config['SECRET_KEY'] = (
-    os.getenv('SECRET_KEY')               # from .env if present
-    or app.config.get('SECRET_KEY')       # from Config if it set one
-    or secrets.token_hex(32)              # dev fallback so app still runs
+    os.getenv('SECRET_KEY')             # from .env (currently how its used via 'flask run')
+    or app.config.get('SECRET_KEY')     # from config 
+    or secrets.token_hex(32)            # safeguard so app still runs
 )
 
-# password encryption
-bcrypt = Bcrypt(app)
+# password encryption and login
+bcrypt = Bcrypt(app)                                          
+login_manager = LoginManager(app)       
+login_manager.login_view = 'login'      
 
-# login using                                            
-login_manager = LoginManager(app)       # testing
-login_manager.login_view = 'login'      # testing
-
-# for the pop-up journal entry
+# for the image loads within the pop-up journal entry
 ALLOWED_EXT = {"jpg","jpeg","png","webp"}
 UPLOAD_DIR = os.path.join(app.root_path, "static", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-# establish postgres connection and pull from env variables (with gitignore for security)
+# establish postgres connection and pull from env variables 
+# (in gitignore for security best practice)
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = int(os.getenv("DB_PORT"))
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_PASS")
 
+# function for db connection info for reuse
 def get_db_conn():
     return psycopg2.connect(
         host=DB_HOST,
@@ -61,26 +66,30 @@ def get_db_conn():
         password=DB_PASS
     )
 
-# checks for valid file types
+# function to check for valid file types and returns a pass/fail for later use
 def _allowed(filename: str) -> bool:
+    # splits on '.' then lowers the extension then checks if its in the list from above
     return "." in filename and filename.rsplit(".",1)[1].lower() in ALLOWED_EXT
 
-#user class for login
+#user class for flask login interface
 class User(UserMixin):
-    def __init__(self, id, email, user_name, progress=None): #todo - map to the view for user progress table
-        self.id = str(id)          # flask-login expects stringable id so pass as str
+    def __init__(self, id, email, user_name, progress=None):
+        # flask-login expects id to be string so pass as str
+        self.id = str(id)
         self.email = email
         self.user_name = user_name
-        # simple summary of user progress for main page with analytics   TODO - updated to db views for actuals
+        # initialize summary of user progress, will pull from db in dashboard()
         self.progress = progress or {
             "total": 0,
             "nebulae": 0,
             "galaxies": 0,
-            "star_clusters":0
+            "star_clusters":0 
         }
 
 
-# todo new dashboard() 8/21 testing
+# DASHBOARD PAGE -----------------------------------------------------------------------------------
+# loads the 'home' screen data for catalog totals and progress stats as well as user journal entries
+# like  messier object dropdown, object names, notes, etc
 @app.route("/")
 @login_required
 def dashboard():
@@ -88,15 +97,20 @@ def dashboard():
     conn = get_db_conn()
     try:
         with conn.cursor() as cur:
-            # Messier dropdown
+            # list of messier objects (used for dropdown)
             cur.execute("""
                 SELECT id, messier_number, COALESCE(common_name,'')
                 FROM public.messier_objects
                 ORDER BY messier_number ASC
             """)
-            objects = [{"id": str(r[0]), "m_number": r[1], "common_name": r[2]} for r in cur.fetchall()]
+            objects = [{"id": str(r[0]),
+                        "m_number": r[1],
+                        "common_name": r[2]} for r in cur.fetchall()]
 
-            # get number of each type for donut KPIs
+            # get number of each type for donut KPIs - this could be a hardcoded number for this use
+            # case but I think it shows scalability having all data pull from the database.
+            # Also if an object was reclassified into another category this way ensures the 
+            # dashboard would properly update 
             cur.execute("""
                 SELECT object_type, count(*)
                 FROM messier_objects
@@ -104,12 +118,12 @@ def dashboard():
             """)
             rows = cur.fetchall()
             catalog_totals = {'Galaxy': 0, 'Nebula': 0, 'Star Cluster':0}
+            # populates the category count for each Galaxy, Nebula & Star Cluster categories
             for a, b in rows:
                 if a in catalog_totals:
                     catalog_totals[a] = int(b)
             
-            # Main dataset for all journal entries plus additional messier 
-            # object details (sorted by latest first as debault)
+            # Main dataset for all journal data (sorted by latest observed_date first as default)
             cur.execute("""
                 SELECT je.id,
                        mo.messier_number,
@@ -124,8 +138,7 @@ def dashboard():
                        mo.magnitude,
                        mo.notes as description,
                        mo.object_subtype,
-                       mo.url as nasa_url,
-                       mo.notes as fun_fact,      
+                       mo.url as nasa_url,    
                        'M' || mo.messier_number::varchar || ': ' || mo.common_name as obj_title
                 FROM public.journal_entries je
                 JOIN public.messier_objects mo ON mo.id = je.messier_id
@@ -133,6 +146,7 @@ def dashboard():
                 WHERE je.user_id = %s
                 ORDER BY je.observed_date DESC, je.updated_at DESC
             """, (user_id,))
+            # variables for Jinja/Bootstrap to pull in 
             entries = [{
                 "id": str(r[0]),
                 "m_number": r[1],
@@ -148,16 +162,10 @@ def dashboard():
                 "desc":r[11],
                 "subtype":r[12],
                 "nasa_url":r[13],
-                "fun_fact":r[14],
-                "obj_title":r[15]
+                "obj_title":r[14]
             } for r in cur.fetchall()]
-
-            # Progress numbers from DB
-            cur.execute("""
-                SELECT COUNT(*) FROM public.user_object_images WHERE user_id = %s
-            """, (user_id,))
-            total = cur.fetchone()[0] or 0
-
+            
+            # get overall user progress numbers from database
             cur.execute("""
                 SELECT mo.object_type, COUNT(*)
                 FROM public.user_object_images uoi
@@ -165,7 +173,10 @@ def dashboard():
                 WHERE uoi.user_id = %s
                 GROUP BY mo.object_type
             """, (user_id,))
+            # creates dictionary (key value pairs) for count of each category
             by_type = {k: v for k, v in cur.fetchall()}
+            #compute totals here, more efficient that running a seperate query
+            total = sum(by_type.values())
             progress = {
                 "total": total,
                 "galaxies": by_type.get("Galaxy", 0),
@@ -175,26 +186,28 @@ def dashboard():
     finally:
         conn.close()
 
-    # attach progress to the current_user for template compatibility
+    # attach progress to current_user then render template and pass data
     current_user.progress = progress
     return render_template("index.html", user=current_user, objects=objects, entries=entries, 
                            catalog_totals=catalog_totals)
 
-
-
-
-# function for loading a journal entry, intaking an image and ensuring there is just one image per object loaded
+# JOURNAL ADDITION ---------------------------------------------------------------------------------
+# creates a new journal entry with an uploaded image, lightly validates the inputs, saves the file, 
+# inserts the record details into various database tables. It does include some standardization like 
+# upserts for ensuring that only one object id is logged per user to avoid duplicate journal entries
+# however more complete CRUD opperations, update and delete, will be added later along with input 
+# sanitization to prevent SQL injections
 @app.route("/journal/new", methods=["POST"])
 @login_required
 def journal_new():
-    user_id = str(current_user.id)
-    messier_id = request.form["messier_id"]
-    observed_date = request.form.get("observed_date", "").strip()
-    body_text = request.form.get("journal_text","").strip()
-    file = request.files.get("image")
+    # fields to present in pop-up
+    user_id = str(current_user.id)                                  #inherent
+    messier_id = request.form["messier_id"]                         #inherent
+    observed_date = request.form.get("observed_date", "").strip()   #required user input
+    file = request.files.get("image")                               #required user input
+    body_text = request.form.get("journal_text","").strip()         #optional
 
-    # basic validation for user journal entry fields
-    # if 'danger' then its displayed to the user sa a warning msg
+    # basic validation forif file type is not allowed then display warning message  
     if not file or not file.filename or not _allowed(file.filename):
         flash("Please upload a JPG/PNG/WebP image.", "danger")
         return redirect(url_for("dashboard"))
@@ -204,32 +217,37 @@ def journal_new():
         flash("Invalid observed date.", "danger")
         return redirect(url_for("dashboard"))
 
-    # save file locally under /static/uploads/<uuid>.<ext> **FOR NOW - may move to cloud in future**
+    # save file locally under /static/uploads/<uuid>.<ext> **may move to cloud in future**
     original = secure_filename(file.filename)
     ext = original.rsplit(".",1)[1].lower()
-    # img_id = uuid.uuid4() removing, should let db determine, but test
-    # Use a random name for the physical file; DB will generate its own UUID for the images.id
+    
+    # generate unique name for the img file and store
     fname = f"{uuid.uuid4().hex}.{ext}"
     abs_path = os.path.join(UPLOAD_DIR, fname)
     rel_path = f"/static/uploads/{fname}"
     file.save(abs_path)
+    
+    # determine the image type to properly render in browser, will revist in future when/if moved to
+    # AWS S3 bucket: https://repost.aws/questions/QU8PZcrxbhTPq8defuJBF0fA/determine-real-file-type-
+    # mime-of-an-uploaded-object-in-s3
     mime = mimetypes.guess_type(original)[0] or "application/octet-stream"
     size = os.path.getsize(abs_path)
 
-    # write to Postgres: images -> user_object_images (upsert) -> journal_entries (upsert)
+    # write to Postgres: images > user_object_images > journal_entries
     conn = get_db_conn()
     try:
         with conn.cursor() as cur:
-            # 1 - Creates new row for the image and lets db handle uuid
+            # inserts the images metadata and ties it to the user then returns the db generated id
             cur.execute("""
-                INSERT INTO public.images (user_id, file_name, file_path, mime_type, byte_size, created_at)
+                INSERT INTO public.images (user_id, file_name, file_path, 
+                                           mime_type, byte_size, created_at)
                 VALUES (%s, %s, %s, %s, %s, NOW())
                 RETURNING id
             """, (user_id, original, rel_path, mime, size))
-            img_id = cur.fetchone()[0]   # <-- UUID generated by DB, use everywhere below
+            img_id = cur.fetchone()[0]
 
-            # 2 - Eensures that only a single image per user per object is allowed
-            # by chekcing if a row already exists and updating the image_id, else it inserts
+            # upsert ensures that only a single image per user per object is allowed by chekcing if 
+            # a row already exists and updating the image_id, but if not then it inserts
             cur.execute("""
                 INSERT INTO public.user_object_images (user_id, messier_id, image_id, created_at)
                 VALUES (%s, %s, %s, NOW())
@@ -237,12 +255,16 @@ def journal_new():
                 SET image_id = EXCLUDED.image_id
             """, (user_id, messier_id, str(img_id)))
 
-            # 3) journal entry: one per (user, object); update if exists
+            # upsert journal entry, again looking for only one record per (user, object) and updates
+            # the image, observed date and notes if it alreaday exists. Technically this is part of 
+            # the UPDATE opeartion in CRUD but this is not intuitive and an 'edit' button should
+            # be added to fully flesh this out
             cur.execute("""
                 SELECT id FROM public.journal_entries
                 WHERE user_id = %s AND messier_id = %s
             """, (user_id, messier_id))
             j = cur.fetchone()
+            # if entry exists, update
             if j:
                 cur.execute("""
                     UPDATE public.journal_entries
@@ -252,26 +274,27 @@ def journal_new():
                         updated_at = NOW()
                     WHERE id = %s
                 """, (str(img_id), body_text, obs_date, j[0]))
+            # else insert
             else:
                 cur.execute("""
                     INSERT INTO public.journal_entries
                         (user_id, messier_id, image_id, body, observed_date, created_at, updated_at)
                     VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
                 """, (user_id, messier_id, str(img_id), body_text, obs_date))
-                # todo also allow db to generate the journal_entries uuid?  <-- DB is already generating it now
 
         conn.commit()
-        flash("Journal entry saved.", "success")
+        flash("Journal entry saved!", "success")
     except Exception as e:
         if conn: conn.rollback()
-        app.logger.exception("Failed to save journal entry")
-        flash("Failed to save journal entry.", "danger")
+        app.logger.exception("Failed to save journal entry, please try again later")
+        flash("Failed to save journal entry, please try again later", "danger")
     finally:
         if conn: conn.close()
-
+    # once complete return to dashboard
     return redirect(url_for("dashboard"))
 
 
+# FLASK LOGIN --------------------------------------------------------------------------------------
 # load user from postgres by id
 @login_manager.user_loader
 def load_user(user_id: str):
@@ -279,7 +302,7 @@ def load_user(user_id: str):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, email, user_name FROM public.users WHERE id = %s", # the '%s' passes the user_id value
+                "SELECT id, email, user_name FROM public.users WHERE id = %s",
                 (user_id,)
             )
             row = cur.fetchone()
@@ -289,19 +312,22 @@ def load_user(user_id: str):
     finally:
         conn.close()
 
-# 8/12 updates - sessions for handling user login and then loading that users data
+# LOGIN PAGE VIEW ----------------------------------------------------------------------------------
+# verifies user credentials with bcrypt on each post, once verified then sends user to dashboard.
+# if already authenticated then get automatically redirected to the dashboard.
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        # return redirect(url_for("profile")) #can go to profile later via button/link
-        return redirect(url_for("dashboard")) # go to dashboard after successful login
+        return redirect(url_for("dashboard")) 
 
     error = None
     if request.method == "POST":
+        # cleans email entered for cleaner lookup
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
 
         conn = get_db_conn()
+        # checks for records in db matching the email entered
         try:
             with conn.cursor() as cur:
                 cur.execute(
@@ -312,6 +338,8 @@ def login():
         finally:
             conn.close()
 
+        # verify password using bcrypt hash to see if entered password post hash = db hash
+        # more about bcrypt in the register function below
         if row and row[3] and bcrypt.check_password_hash(row[3], password):
             user = User(row[0], row[1], row[2])
             login_user(user, remember=bool(request.form.get("remember")))
@@ -322,19 +350,23 @@ def login():
 
     return render_template("login.html", error=error)
 
-
+# REGISTER PAGE VIEW -------------------------------------------------------------------------------
+# if already logged in then gets redirected to dashboard
+# else go through form validation and create a new account
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for("dashboard"))
     error = None
     if request.method == "POST":
+        # cleans email entered for cleaner lookup
         email = request.form.get("email", "").strip().lower()
         user_name = request.form.get("user_name", "").strip()
+        # two password fields to confirm no keying errors
         password = request.form.get("password", "")
         confirm  = request.form.get("confirm", "")
 
-        # basic validation
+        # basic input validation (all required)
         if not email or not password or not user_name:
             error = "Email, name, and password are required."
         elif password != confirm:
@@ -346,9 +378,16 @@ def register():
                 with conn.cursor() as cur:
                     cur.execute("SELECT 1 FROM public.users WHERE email = %s", (email,))
                     exists = cur.fetchone()
+                    # meaning a record was found
                     if exists:
-                        error = "An account with that email already exists."
+                        error = "An account with that email already exists, please use login."
                     else:
+                        # bcrypt is commonly used for securely storing passwords in databases,
+                        # its used here to hash the plaintext password by mixing it with a random 
+                        # value (salt) and storing it as a non-reversible UTF-8 string which will 
+                        # later then be used to verify the password. It's reliable becuase it allows
+                        # for multiple users to have the same password but does not generate the 
+                        # same hash and is very computationally intensive to try to break.
                         pwd_hash = bcrypt.generate_password_hash(password).decode("utf-8")
                         cur.execute("""
                             INSERT INTO public.users (email, user_name, password_hash, verified_email)
@@ -366,30 +405,30 @@ def register():
                     conn.close()
     return render_template("register.html", error=error)
 
-
+# REGISTER PAGE VIEW -------------------------------------------------------------------------------
+# simple reroute to login screen once logged out
 @app.route("/logout")
 @login_required
 def logout():
     logout_user()
     return redirect(url_for("login"))
 
-
+# PROFILE PAGE VIEW -------------------------------------------------------------------------------
+# placeholder 
 @app.route("/profile")
 @login_required
 def profile():
     return render_template("profile.html", user=current_user)
 
-
-
+# ABOUT PAGE VIEW -------------------------------------------------------------------------------
+# simple route to a short page that provides more information about the application 
 @app.route("/about")
 @login_required
 def about():
     return render_template("about.html", user=current_user)
 
-import routes
-
-# run app
+# runs the app
 if __name__ == '__main__':
     app.run(debug=True)
 
-    # todo **************** DONT FORGET TO RUN DOCKER!!!
+# NTS: DONT FORGET TO RUN DOCKER!!!
