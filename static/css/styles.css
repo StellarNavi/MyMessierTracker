@@ -118,3 +118,5 @@ body {
 @media (min-width: 1400px){
   .specs-list{ grid-template-columns: 180px 1fr; }
 }
+
+.text-pink { color: #f4a5c8 !important; }

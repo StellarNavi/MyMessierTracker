@@ -35,14 +35,14 @@ CREATE TABLE IF NOT EXISTS public.users (
   email CITEXT NOT NULL UNIQUE,
   user_name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
-  verified_email BOOLEAN NOT NULL DEFAULT FALSE,
+  verified_email BOOLEAN NOT NULL DEFAULT FALSE, --remove
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- IMAGES ----------------------------------------------------------------------
   -- purpose: stores all information for images uploaded by users with metadata, 
-  -- notes, audit fields like when it was logged, etc. It does not directly include
+  -- audit fields like when it was logged, etc. It does not directly include
   -- messier object tags as that will be a separate table
 CREATE TABLE IF NOT EXISTS public.images (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS public.user_object_images (
 CREATE INDEX IF NOT EXISTS uoi_user_idx    ON public.user_object_images(user_id);
 CREATE INDEX IF NOT EXISTS uoi_messier_idx ON public.user_object_images(messier_id);
 
--- USER JKOURNAL ENTRIES -------------------------------------------------------------
+-- USER JOURNAL ENTRIES -------------------------------------------------------------
   -- purpose: stores user notes pertaining to the messier objects they have loaded to 
   -- the app. it allows the user to capture any additional detail such as imaging 
   -- session length and other details or even personal commentary. 
@@ -92,3 +92,4 @@ CREATE TABLE IF NOT EXISTS public.journal_entries (
 
 CREATE INDEX IF NOT EXISTS idx_je_user ON public.journal_entries(user_id);
 CREATE INDEX IF NOT EXISTS idx_je_obj  ON public.journal_entries(messier_id);
+
