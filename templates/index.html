@@ -47,6 +47,8 @@
       </div>
     </header>
 
+
+
     <!-- Prog bar title -->
     <h4 class="m-0 w-100 text-center" , style="color:#f4f2f5; font-weight:bold; font-size: 40px;">Total Objects Captured
     </h4>
@@ -502,13 +504,15 @@
   </div>
 
 
-  <!-- add user account delete modal (pop-up) ************************************************-->
+  <!-- DELETE ACCOUNT MODAL ***********************************************************************************************************-->
   <!-- design inspiration: https://nicelydone.club/blog/delete-account-examples-inspiration#delete-account-design-examples-inspiration -->
-  <div class="modal fade" id="confirmAcctDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteTitle">
+  <div class="modal fade" id="confirmAcctDeleteModal" tabindex="-1" aria-hidden="true">
+
+
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content" style="border:5px solid #e47474;">
+        <!-- header -->
         <div class="modal-header">
-          <!-- header -->
           <h5 id="confirmDeleteTitle"
             class="fs-1 modal-title w-100 text-center fw-bold d-flex justify-content-center align-items-center gap-4 text-dark">
             <i class="bi bi-trash3 text-danger"></i>
@@ -518,31 +522,69 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
-        <!-- body -->
-        <div class="modal-body">
-          <p class="modal-title w-100 text-center fw-bold d-flex justify-content-center align-items-center text-dark">
-            WARNING: This action is irreversible and will permanently remove all account data.</p>
-          <p></p>
-          <!-- form to require password to continue -->
-          <div class="mb-3">
-            <input type="password" class="form-control" id="deleteAcctPassword" name="delete_acct_password"
-              placeholder="Password Required" autocomplete="current-password" required>
+        <!-- body with form that sends to route-->
+        <form id="deleteAcctForm" method="POST" action="{{ url_for('account_delete') }}">
+          <div class="modal-body">
+            <!-- ensure incorrect password msg displays -->
+            <div id="deleteError" class="alert alert-danger mb-3 {% if not del_error %}d-none{% endif %}" role="alert">
+              Incorrect password. Please try again.</div>
+            <p
+              class="modal-title w-100 border-0 text-center fw-bold d-flex justify-content-center align-items-center text-dark">
+              WARNING: This action is irreversible and will permanently remove all your account data.</p>
+            <p></p>
+            <!-- form to require password to continue and ensures the 'incorrect password' error displays  -->
+            <div class="mb-3">
+              <input type="password" class="form-control" id="deleteAcctPassword" name="delete_acct_password"
+                placeholder="Password Required" required {% if del_error %}autofocus{% endif %}>
+            </div>
           </div>
-        </div>
 
-        <!-- decision buttons -->
-        <div class="modal-footer">
-          <!-- cancel automatically returns back to dashboard -->
-          <button type="button" class="btn btn-secondary text-white" data-bs-dismiss="modal">Cancel</button>
-          <!-- TODO link to function that performs data deletion...-->
-          <button type="button" class="btn btn-danger text-white fw-bold" id="confirmDeleteBtn">DELETE ACCOUNT</button>
-        </div>
+          <!-- decision buttons -->
+          <div class="modal-footer">
+            <!-- cancel automatically returns back to dashboard -->
+            <button type="button" class="btn btn-secondary text-white" data-bs-dismiss="modal">Cancel</button>
+            <!-- links to function that performs data deletion...-->
+            <button type="submit" class="btn btn-danger text-white fw-bold" id="confirmDeleteBtn">
+              DELETE ACCOUNT
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
+  <!-- dim the backgroupnd dashbaord page (again if pw was incorrect)-->
+  {% if del_error %}<div class="modal-backdrop fade show"></div>{% endif %}
 
 
+  <!-- script to help manage ui consistency after password error -->
+  <!-- ref: https://developer.mozilla.org/en-US/docs/Web/API/Document/DOMContentLoaded_event -->
+  <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const hadError = '{{ "1" if request.args.get("del_error") else "0" }}' === '1';
+
+      if (hadError) {
+        const el = document.getElementById('confirmAcctDeleteModal');
+        const modal = new bootstrap.Modal(el, { backdrop: 'static', keyboard: true });
+        modal.show();
+
+        // sets the cursor back into the password field element for user convinience
+        el.addEventListener('shown.bs.modal', () => {
+          document.getElementById('deleteAcctPassword')?.focus();
+        });
+
+        // clears the remaining faded out backdrop when canceled so it returns to normal
+        el.addEventListener('hidden.bs.modal', () => {
+          document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+          document.body.classList.remove('modal-open');
+          document.body.style.removeProperty('overflow');
+          document.body.style.removeProperty('padding-right');
+        });
+      }
+  });
+  </script>
 </body>
+
+
 <!-- FOOTER --------------------------------------------------------------------------------------->
 <footer class="mt-5" style="position:relative; z-index:1; border-top:2px solid #8b537f; 
                             background-color:#1a1a1a;">
@@ -578,7 +620,7 @@
             aria-label="GitHub">
             <i class="bi bi-github fs-4"></i>
           </a>
-          <!-- placeholder - I dont have an X, remove? -->
+          <!-- placeholder - I dont have an X, figure out a 3rd liknk or just remove? -->
           <a class="text-light" href="https://x.com/NASA" target="_blank" rel="noopener" aria-label="X (Twitter)">
             <i class="bi bi-twitter-x fs-4"></i>
           </a>
@@ -592,5 +634,6 @@
     </div>
   </div>
 </footer>
+
 
 </html>

@@ -33,3 +33,23 @@
 	python .\app.py
 
 * go to http://127.0.0.1:5000/ in your web browser and you should see the login screen
+
+*register an account with basic info:
+    - username
+    - email
+    - password
+
+* sign in with:
+    - email
+    - password
+
+* add entries using the journal add button at the bottom right
+
+* test account deletion by:
+    - going to the user profile dropdown at top right
+    - choose 'Delete Account'
+    - can test that password verifcation works by entering an incorrect password to see error msg
+    - can cancel
+    - can type correct password and click 'Delete' to see process take place
+    - get rerouted back to register to create new account, but can also click back over to login and 
+        try logging in with the same credentials first to see that that account no longer exists

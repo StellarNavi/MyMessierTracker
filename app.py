@@ -14,7 +14,7 @@ import psycopg2
 from dotenv import load_dotenv
 
 # core Flask app functionality for requests and responses
-from flask import (Flask, render_template, request, redirect, url_for, flash)
+from flask import (Flask, render_template, request, redirect, url_for, flash, session)
 
 # password hash
 from flask_bcrypt import Bcrypt
@@ -25,7 +25,6 @@ from flask_login import (LoginManager, UserMixin, login_user, logout_user,
 
 from werkzeug.utils import secure_filename
 from config import Config
-
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -188,8 +187,11 @@ def dashboard():
 
     # attach progress to current_user then render template and pass data
     current_user.progress = progress
-    return render_template("index.html", user=current_user, objects=objects, entries=entries, 
-                           catalog_totals=catalog_totals)
+    # return render_template("index.html", user=current_user, objects=objects, entries=entries, 
+    #                        catalog_totals=catalog_totals)
+    del_error = request.args.get("del_error") == "1"
+    return render_template("index.html", user=current_user, objects=objects, entries=entries,
+                       catalog_totals=catalog_totals, del_error=del_error)
 
 # JOURNAL ADDITION ---------------------------------------------------------------------------------
 # creates a new journal entry with an uploaded image, lightly validates the inputs, saves the file, 
@@ -290,9 +292,12 @@ def journal_new():
         flash("Failed to save journal entry, please try again later", "danger")
     finally:
         if conn: conn.close()
+    
+    # incorrect password handling for delete modal
+    del_error = session.pop('del_error', None)
     # once complete return to dashboard
     return redirect(url_for("dashboard"))
-
+    
 
 # FLASK LOGIN --------------------------------------------------------------------------------------
 # load user from postgres by id
@@ -426,6 +431,65 @@ def profile():
 @login_required
 def about():
     return render_template("about.html", user=current_user)
+
+# DELETE ACCOUNT PAGE VIEW -------------------------------------------------------------------------
+# wip
+@app.route("/account/delete", methods=["POST"])
+@login_required
+def account_delete():
+    # pulled from delete modal password input
+    pwd = request.form.get("delete_acct_password", "")
+    user_id = str(current_user.id)
+
+    # open db connection
+    conn = get_db_conn()
+    # placeholder for files to collect then delete
+    file_paths = []
+    try:
+        with conn.cursor() as cur:
+            # Verify password
+            cur.execute("""SELECT password_hash 
+                        FROM public.users WHERE id = %s""", (user_id,))
+            row = cur.fetchone()
+            # bad password
+            if not row or not row[0] or not bcrypt.check_password_hash(row[0], pwd):
+                flash("Incorrect password. Please try again.", "danger")
+                session['del_error'] = "Incorrect password. Please try again"
+                return redirect(url_for("dashboard", del_error=1))
+
+            # pass userid & get image paths before deleting from table so they can be removed later
+            cur.execute("SELECT file_path FROM public.images WHERE user_id = %s", (user_id,))
+            img_files = [r[0] for r in cur.fetchall()]
+
+            # delete all user data via cascades generated at schema creation, this setup properly 
+            # manages the removal of records from journal_entries, user_object_images, images tables
+            cur.execute("DELETE FROM public.users WHERE id = %s", (user_id,))
+
+        # commits changes to db
+        conn.commit()
+        
+    # if process failed, let user know and send back to dashboard page and close db connection    
+    except Exception:
+        if conn: conn.rollback()
+        # error then shown in the delete modal setup in index.html
+        return redirect(url_for("dashboard"))
+    finally:
+        if conn:
+            conn.close()
+
+    # then remove actual image files from storage
+    for img in img_files:
+        try:
+            abs_path = os.path.join(app.root_path, img.lstrip("/"))
+            if os.path.exists(abs_path):
+                os.remove(abs_path)
+        except Exception:
+            app.logger.exception("Failed to delete file %s", img)
+
+    # send user to the 'success' screen and logout
+    logout_user()
+    return render_template("post_delete.html") 
+
 
 # runs the app
 if __name__ == '__main__':
