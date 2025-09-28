@@ -93,3 +93,30 @@ CREATE TABLE IF NOT EXISTS public.journal_entries (
 CREATE INDEX IF NOT EXISTS idx_je_user ON public.journal_entries(user_id);
 CREATE INDEX IF NOT EXISTS idx_je_obj  ON public.journal_entries(messier_id);
 
+-- ENHANCEMENT 2: implement a rarity score and use it to show the top remaining items 
+create or replace view public.v_object_rarity as
+with total_users as ( -- this is the denominator: a count of all registered users
+    select count(*)::numeric as total_users
+    from public.users),
+     obj as ( -- this is the numerator: a distinct count of users who have captured each object
+         select mo.id                                as messier_id,
+                mo.messier_number,
+                mo.common_name,
+                mo.object_type,
+                count(distinct uoi.user_id)::numeric as user_ct
+         from public.messier_objects mo
+                  left join public.user_object_images uoi
+                            on uoi.messier_id = mo.id
+         group by mo.id, mo.messier_number, mo.common_name)
+-- final query calculates the rarity per object
+select o.messier_id,
+       o.object_type,
+       o.messier_number || ': ' || o.common_name as object,
+       -- gets the % val that can be used downstream to sort and limit by but also append
+       -- a '%' sign to and make sense to the user
+       case
+           when t.total_users = 0 then 0
+           else round(100 * o.user_ct / t.total_users, 0) end as rarity_pct
+from obj o
+         cross join total_users t
+order by rarity_pct desc;

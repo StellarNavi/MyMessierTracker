@@ -118,9 +118,9 @@ def dashboard():
             rows = cur.fetchall()
             catalog_totals = {'Galaxy': 0, 'Nebula': 0, 'Star Cluster':0}
             # populates the category count for each Galaxy, Nebula & Star Cluster categories
-            for a, b in rows:
-                if a in catalog_totals:
-                    catalog_totals[a] = int(b)
+            for category, category_count in rows:
+                if category in catalog_totals:
+                    catalog_totals[category] = int(category_count)
             
             # Main dataset for all journal data (sorted by latest observed_date first as default)
             cur.execute("""
@@ -138,10 +138,12 @@ def dashboard():
                        mo.notes as description,
                        mo.object_subtype,
                        mo.url as nasa_url,    
-                       'M' || mo.messier_number::varchar || ': ' || mo.common_name as obj_title
+                       'M' || mo.messier_number::varchar || ': ' || mo.common_name as obj_title,
+                       r.rarity_pct as rarity
                 FROM public.journal_entries je
                 JOIN public.messier_objects mo ON mo.id = je.messier_id
                 LEFT JOIN public.images i ON i.id = je.image_id
+                LEFT JOIN public.v_object_rarity r on mo.id = r.messier_id
                 WHERE je.user_id = %s
                 ORDER BY je.observed_date DESC, je.updated_at DESC
             """, (user_id,))
@@ -161,8 +163,88 @@ def dashboard():
                 "desc":r[11],
                 "subtype":r[12],
                 "nasa_url":r[13],
-                "obj_title":r[14]
+                "obj_title":r[14],
+                "rarity":r[15] # Enahancement #2: Rarity metric
             } for r in cur.fetchall()]
+            
+            # ENHANCEMENT 2: implement a rarity score and use it to show the top remaining items 
+            # get the users top 3 uncollected items by rarity to be used in the highcharts tooltips
+            # see main_schema.sql for view structure
+            # get the users top most rare items for journal tag
+            # utilizes the existing entries table we just queried instead of sending additional
+            # queries to the database
+            rare_ids = [
+                    e["id"] for e in sorted(
+                        # only identifies entry as rare if less than half of users have logged it
+                        (e for e in entries if e.get("rarity") is not None and e["rarity"] < 50),
+                        key=lambda x: x["rarity"])[:3]
+                    ]
+            # order the ranks to be tagged with gold, silver, bronze later
+            rare_ranks = {eid: i for i, eid in enumerate(rare_ids, start=1)} 
+            
+            # progress bar (top 3 overall)
+            cur.execute(""" select messier_id, object_type, object, rarity_pct
+                from public.v_object_rarity 
+                where messier_id not in (select user_object_images.messier_id
+                                        from public.user_object_images
+                                        where user_object_images.user_id = %s)
+                order by rarity_pct desc
+                limit 3;""", (user_id,))
+            capture_next = [{
+                "messier_id":str(r[0]),
+                "object_type":r[1], 
+                "object":r[2],
+                "rarity_pct":r[3]
+            } for r in cur.fetchall()]
+            
+            # donut 1 (top 3 galxies)
+            cur.execute(""" select messier_id, object_type, object, rarity_pct
+                from public.v_object_rarity
+                where messier_id not in (select user_object_images.messier_id
+                                        from public.user_object_images
+                                        where user_object_images.user_id = %s)
+                and object_type = 'Galaxy'
+                order by rarity_pct desc
+                limit 3;""", (user_id,))
+            capture_next_galaxy = [{
+                "messier_id":str(r[0]),
+                "object_type":r[1], 
+                "object":r[2],
+                "rarity_pct":r[3]
+            } for r in cur.fetchall()]
+            
+            # donut 2 (top 3 nebulae)
+            cur.execute(""" select messier_id, object_type, object, rarity_pct
+                from public.v_object_rarity
+                where messier_id not in (select user_object_images.messier_id
+                                        from public.user_object_images
+                                        where user_object_images.user_id = %s)
+                and object_type = 'Nebula'
+                order by rarity_pct desc
+                limit 3;""", (user_id,))
+            capture_next_nebula = [{
+                "messier_id":str(r[0]),
+                "object_type":r[1], 
+                "object":r[2],
+                "rarity_pct":r[3]
+            } for r in cur.fetchall()]
+            
+            # donut 3 (top 3 star clusters)
+            cur.execute(""" select messier_id, object_type, object, rarity_pct
+                from public.v_object_rarity
+                where messier_id not in (select user_object_images.messier_id
+                                        from public.user_object_images
+                                        where user_object_images.user_id = %s)
+                and object_type = 'Star Cluster'
+                order by rarity_pct desc
+                limit 3;""", (user_id,))
+            capture_next_star = [{
+                "messier_id":str(r[0]),
+                "object_type":r[1], 
+                "object":r[2],
+                "rarity_pct":r[3]
+            } for r in cur.fetchall()]
+            
             
             # get overall user progress numbers from database
             cur.execute("""
@@ -187,11 +269,15 @@ def dashboard():
 
     # attach progress to current_user then render template and pass data
     current_user.progress = progress
-    # return render_template("index.html", user=current_user, objects=objects, entries=entries, 
-    #                        catalog_totals=catalog_totals)
     del_error = request.args.get("del_error") == "1"
+    
     return render_template("index.html", user=current_user, objects=objects, entries=entries,
-                       catalog_totals=catalog_totals, del_error=del_error)
+                       catalog_totals=catalog_totals, del_error=del_error, 
+                       capture_next=capture_next,
+                       capture_next_galaxy = capture_next_galaxy, 
+                       capture_next_nebula = capture_next_nebula,
+                       capture_next_star = capture_next_star,
+                       rare_ids=rare_ids, rare_ranks=rare_ranks)
 
 # JOURNAL ADDITION ---------------------------------------------------------------------------------
 # creates a new journal entry with an uploaded image, lightly validates the inputs, saves the file, 

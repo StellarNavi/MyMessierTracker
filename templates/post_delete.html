@@ -30,7 +30,7 @@
     const m = new bootstrap.Modal(document.getElementById('deletedModal'));
     m.show();
     // send user back to login page (this allows them to attempt to login and see their acct no longer exists
-      // and also allows them to click register to create a  new account if desired) 
+    // and also allows them to click register to create a  new account if desired) 
     document.getElementById('goLogin').addEventListener('click', () => {
       m.hide();
       window.location = "{{ url_for('register') }}";

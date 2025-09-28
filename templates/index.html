@@ -105,7 +105,19 @@
                             border-width: thin;border-color: #8d9edb;">
                   {% endif %}
                 </td>
-                <td> M{{ e.m_number }} </td>
+                <!-- <td> M{{ e.m_number }} </td> -->
+
+                <!-- enhancement 2: add stars next to rare items in users journal -->
+                <td>
+                  {% set rank = rare_ranks.get(e.id) %}
+                  {% if rank %}
+                  <!-- star colors by rarity rank -->
+                    {% set color = '#ffd700' if rank == 1 else '#c0c0c0' if rank == 2 else '#cd7f32' %}
+                    <span title="Rare find! Only {{ e.rarity }}% of users have logged this object." style="color: {{ color }};">★</span>
+                  {% endif %}
+                  M{{ e.m_number }}
+                </td>
+
                 <td> {{ e.name }} </td>
                 <td> {{ e.type }} </td>
                 <td> {{ e.constellation }} </td>
@@ -115,7 +127,8 @@
                     data-title="{{e.obj_title}}" data-messier="{{ e.m_number }}" data-name="{{ e.name }}"
                     data-notes="{{ e.desc }}" data-img="{{ e.img }}" data-constellation="{{ e.constellation }}"
                     data-object-type="{{ e.type }}" data-object-subtype="{{ e.subtype }}" data-ra="{{ e.ra }}"
-                    data-dec="{{ e.dec }}" data-mag="{{ e.mag }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}">
+                    data-dec="{{ e.dec }}" data-mag="{{ e.mag }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}"
+                    data-rarity="{{ e.rarity|e}}">
                     <i class="bi bi-box-arrow-up-right Large"></i>
                   </button></td>
 
@@ -231,6 +244,22 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <!-- Highcharts PROGRESS BAR  -->
+  <!-- get top 3 remaining objects for user from capture_next query -->
+  <script>
+    const captureNext = JSON.parse('{{ capture_next | tojson | safe }}');
+  </script>
+
+  <!-- add icons for object type to tooltip list for easy understanding -->
+  <script>
+    function iconForType(ot) {
+      if (ot.includes('Galaxy')) return '🌀';
+      if (ot.includes('Nebula')) return '🌌';
+      if (ot.includes('Star Cluster')) return '✨';
+      return '';
+    }
+  </script>
+
+
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       var collected = Number('{{ user.progress.total|int }}'); // wrapping in Number() to avoid parser error
@@ -250,20 +279,56 @@
         xAxis: { categories: ['Progress'], visible: false },
         yAxis: { min: 0, max: catalog, title: { text: null }, gridLineWidth: 0, labels: { enabled: false } },
         legend: { enabled: false },
-        tooltip: { enabled: false },
+        // tooltip: { enabled: false }, pre-enh2
+        // ENHANCEMENT 2: implement a rarity score and use it to show the top remaining items 
+        tooltip: {
+          useHTML: true,
+          outside: true, // render outside chart to avoid any clipping
+          backgroundColor: 'rgba(30,20,20,0.90)',
+          borderColor: '#6b507c',
+          style: { color: '#ffffff', fontSize: '16px' },
+          formatter: function () {
+            const esc = s => String(s ?? '')
+              // helps format the data in the pop-up so its presented cleanly
+              .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+            // if there are no records in the capture_next list then send a 'congrats!' msg
+            if (!Array.isArray(captureNext) || captureNext.length === 0) {
+              return '<b>Congradulations!!!</b><br><span style="opacity:.8">You have completed the Messier Catalogue and captured all 110 objects!.</span>';
+            }
+
+            // else show all rows in the capture_next list in the tooltip
+            const rows = captureNext.map((d, i) =>
+              `<div><span style="opacity:.7"></span> ${iconForType(d.object_type)} M${esc(d.object)} : ${esc(d.rarity_pct)}%</div>`
+            ).join('');
+
+            return `<div style="min-width:260px">
+              <div style="font-weight:bold;margin-bottom:5px">Top 3 Remaining Objects</div>
+              ${rows}
+              <div style="opacity:.7;font-size:12px;margin-top:6px">% = users who have logged this object</div>
+            </div>`;
+          }
+        },
+
+
         plotOptions: {
           series: {
             stacking: 'normal',
             borderWidth: 0,
             pointPadding: 0,
             groupPadding: 0,
+            states: {
+              inactive: { opacity: 1 },   // stop dimming other sections
+              hover: { enabled: true }
+            }
           }
         },
-        series: [ // can reorder series via the order listed here, but should only be completed and remaining --- REMINDER for DONUT CHARTS
+        series: [
           {
             name: 'Remaining',
-            color: 'rgba(139,95,191,0.15)',   // color for remaining slice
-            enableMouseTracking: false,
+            color: 'rgba(139,95,191,0.15)',
+            enableMouseTracking: true,
             data: [{ y: remaining }],
             dataLabels: {
               // if less than 20 objects collected, show the label centered on the track -  easier to read
@@ -275,12 +340,12 @@
           },
           {
             name: 'Completed',
-            color: '#238b98', // color for collected slice
+            color: '#238b98',
+            enableMouseTracking: true,
             data: [{ y: collected, className: 'hc-glow' }],
             dataLabels: {
               enabled: collected > 19,
               inside: true,
-              // may remove % to keep it clean and simple?
               formatter: function () { return collected + ' / ' + catalog + ' (' + pct + '%)'; },
               style: { textOutline: 'none', fontWeight: 'bold', color: '#ffffff', fontSize: '16px' }
             }
@@ -294,6 +359,13 @@
   </script>
 
   <!-- Highcharts DONUT CHARTS-->
+  <!-- Enhancement 2 addtions of top 3 by rarity score as tooltips on the donut charts as well  -->
+  <script>
+    const captureNextGalaxy = JSON.parse('{{ capture_next_galaxy | tojson | safe }}');
+    const captureNextNebula = JSON.parse('{{ capture_next_nebula | tojson | safe }}');
+    const captureNextStar = JSON.parse('{{ capture_next_star | tojson | safe }}');
+  </script>
+
   <script>
     (function () {
       // User progress (with safe fallbacks)
@@ -302,12 +374,12 @@
       var clustersDone = Number('{{ (user.progress.star_clusters |default (0, true))| int }}');
 
       // Donut Chart KPIs
-      var totals = JSON.parse('{{ catalog_totals | tojson | safe}}'); //wrapping this one in json as its an array of totals
+      var totals = JSON.parse('{{ catalog_totals | tojson | safe}}');
       var totalGalaxies = (totals && totals["Galaxy"]) || 0;
       var totalNebulae = (totals && totals["Nebula"]) || 0;
       var totalClusters = (totals && totals["Star Cluster"]) || 0;
 
-      function donut(container, completed, total, label) {  //************************************** DONUT CHARTS
+      function donut(container, completed, total, label, tips) {  //******************* DONUT CHARTS
         completed = Math.max(0, Math.min(completed, total));
         var remaining = Math.max(total - completed, 0);
 
@@ -357,7 +429,38 @@
             },
             y: 30
           },
-          tooltip: { enabled: false },
+          // Enhancement 2: Rarity/Popularity Score added in tooltip
+          tooltip: {
+            useHTML: true,
+            outside: true,
+            backgroundColor: 'rgba(30,20,20,0.90)',
+            borderColor: '#6b507c',
+            style: { color: '#f4f2f5', fontSize: '16px' },
+            followPointer: false,
+            positioner: function (labelWidth, labelHeight) {
+              const c = this.chart;
+              const x = c.plotLeft + c.plotWidth - labelWidth + (labelWidth / 2);
+              const y = c.plotTop + 10;
+              return { x, y };
+            },
+            formatter: function () {
+              const esc = s => String(s ?? '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+              if (!Array.isArray(tips) || tips.length === 0) {
+                return `<b>Congrats!!!</b><br><span style="opacity:.8">You have captured all ${esc(label)}!</span>`;
+              }
+              const rows = tips.map((d, i) =>
+                `<div><span style="opacity:.7">${iconForType(d.object_type)}</span> M${esc(d.object)}: ${esc(d.rarity_pct)}%</div>`
+              ).join('');
+              return `<div style="min-width:220px">
+                    <div style="font-weight:bold;margin-bottom:4px">Top 3 Remaining ${esc(label)}</div>
+                    ${rows}
+                    <div style="opacity:.7;font-size:12px;margin-top:6px">% = users who have logged this object</div>
+                  </div>`;
+            }
+          },
           legend: { enabled: false },
           credits: { enabled: false },
           plotOptions: {
@@ -381,12 +484,13 @@
 
 
       // TESTING
-      donut('donut-galaxies', galaxiesDone, totalGalaxies, 'Galaxies');
-      donut('donut-nebulae', nebulaeDone, totalNebulae, 'Nebulae');
-      donut('donut-clusters', clustersDone, totalClusters, 'Star Clusters');
+      donut('donut-galaxies', galaxiesDone, totalGalaxies, 'Galaxies', captureNextGalaxy);
+      donut('donut-nebulae', nebulaeDone, totalNebulae, 'Nebulae', captureNextNebula);
+      donut('donut-clusters', clustersDone, totalClusters, 'Star Clusters', captureNextStar);
 
     })();
   </script>
+
 
   <!-- pop-up for seeing the object data and journal entry in more detail -->
   <script>
@@ -559,8 +663,8 @@
   <!-- script to help manage ui consistency after password error -->
   <!-- ref: https://developer.mozilla.org/en-US/docs/Web/API/Document/DOMContentLoaded_event -->
   <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        const hadError = '{{ "1" if request.args.get("del_error") else "0" }}' === '1';
+    document.addEventListener('DOMContentLoaded', function () {
+      const hadError = '{{ "1" if request.args.get("del_error") else "0" }}' === '1';
 
       if (hadError) {
         const el = document.getElementById('confirmAcctDeleteModal');
@@ -580,7 +684,7 @@
           document.body.style.removeProperty('padding-right');
         });
       }
-  });
+    });
   </script>
 </body>
 
@@ -599,7 +703,7 @@
             style="height:50px; width:auto;">
         </a>
         <!-- for a professional look? -->
-        <!-- <div class="small text mt-0">© 2025 My Messier Tracker</div> -->
+        <div class="small text mt-0">© 2025 My Messier Tracker</div>
       </div>
 
       <!-- misc links like about page-->
@@ -608,7 +712,7 @@
           <a class="nav-link px-0 text-light" href="{{ url_for('dashboard') }}">Home</a>
           <a class="nav-link px-0 text-light" href="{{ url_for('about') }}">About</a>
           <!-- placeholder - maybe change to a Contact link? or maybe some astro resources?-->
-          <a class="nav-link px-0 text-light" href="">Profile</a>
+          <a class="nav-link px-0 text-light" href="{{ url_for('about') }}">Resources</a>
 
         </nav>
       </div>
