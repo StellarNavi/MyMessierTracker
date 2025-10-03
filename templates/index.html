@@ -93,6 +93,9 @@
                 <th style="width:200px;">Constellation</th>
                 <th style="width:140px;">Date Captured</th>
                 <th style="width:140px;">More Details</th>
+                <!-- Enhancement 3: Complete CRUD Operations (add edit and delete functionality) -->
+                <th style="width:60px;">Edit</th>
+                <th style="width:60px;">Delete</th>
               </tr>
             </thead>
             <tbody>
@@ -112,8 +115,9 @@
                   {% set rank = rare_ranks.get(e.id) %}
                   {% if rank %}
                   <!-- star colors by rarity rank -->
-                    {% set color = '#ffd700' if rank == 1 else '#c0c0c0' if rank == 2 else '#cd7f32' %}
-                    <span title="Rare find! Only {{ e.rarity }}% of users have logged this object." style="color: {{ color }};">★</span>
+                  {% set color = '#ffd700' if rank == 1 else '#c0c0c0' if rank == 2 else '#cd7f32' %}
+                  <span title="Rare find! Only {{ e.rarity }}% of users have logged this object."
+                    style="color: {{ color }};">★</span>
                   {% endif %}
                   M{{ e.m_number }}
                 </td>
@@ -123,14 +127,30 @@
                 <td> {{ e.constellation }} </td>
                 <td> {{ e.date }} </td>
                 <!-- includes list of fields to pass to the pop-up once clicked (auto formating keeps changing.. look into) -->
-                <td><button type="button" class="btn btn-lg view-object" title="View details"
-                    data-title="{{e.obj_title}}" data-messier="{{ e.m_number }}" data-name="{{ e.name }}"
-                    data-notes="{{ e.desc }}" data-img="{{ e.img }}" data-constellation="{{ e.constellation }}"
-                    data-object-type="{{ e.type }}" data-object-subtype="{{ e.subtype }}" data-ra="{{ e.ra }}"
-                    data-dec="{{ e.dec }}" data-mag="{{ e.mag }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}"
+                <td>
+                  <button type="button" class="btn btn-lg view-object" title="View details" data-title="{{e.obj_title}}"
+                    data-messier="{{ e.m_number }}" data-name="{{ e.name }}" data-notes="{{ e.desc }}"
+                    data-img="{{ e.img }}" data-constellation="{{ e.constellation }}" data-object-type="{{ e.type }}"
+                    data-object-subtype="{{ e.subtype }}" data-ra="{{ e.ra }}" data-dec="{{ e.dec }}"
+                    data-mag="{{ e.mag }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}"
                     data-rarity="{{ e.rarity|e}}">
                     <i class="bi bi-box-arrow-up-right Large"></i>
-                  </button></td>
+                  </button>
+                </td>
+                <!-- Enhancement 3: Complete CRUD Operations (add edit and delete functionality) -->
+                 <!-- UPDATE -->
+                <td>
+                  <button type="button" class="btn btn-lg view-object" title="Edit Record">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                </td>
+                <!-- DELETE -->
+                <td>
+                  <button type="button" class="btn btn-lg view-object" title="Delete Record">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </td>
+
 
               </tr>
               {% endfor %}
