@@ -412,7 +412,7 @@ def journal_new():
     
     
 # ENHANCEMENT THREE FUNCTIONS FOR COMPLETING CRUD OPERATIONS ***************************************
-# TODO Journal Entry Edit function
+# Journal Entry Edit function
 # this will allow the user to make updates to an existing journal entry (date, notes, image)
 @app.route("/journal/edit", methods=["POST"])
 @login_required
@@ -449,7 +449,7 @@ def journal_edit():
     conn = get_db_conn()
     try:
         with conn.cursor() as cur:
-            # Ensure entry belongs to user; fetch current image + messier for linkage updates
+            # ensure the database can find the user's entry to edit
             cur.execute("""
                 SELECT je.id, je.image_id, je.messier_id, i.file_path
                 FROM public.journal_entries je
@@ -494,7 +494,7 @@ def journal_edit():
                     WHERE id = %s AND user_id = %s
                 """, (str(new_img_id), entry_id, user_id))
 
-            # Always update date/notes
+            # update date/notes and get updated timestamp
             cur.execute("""
                 UPDATE public.journal_entries
                 SET observed_date = %s,
@@ -542,73 +542,69 @@ def journal_edit():
 
     return redirect(url_for("dashboard"))
 
-# TODO Journal Entry Delete function
+# TODO Journal Entry Delete function ---------------------------------------------------------------
 @app.route("/journal/delete", methods=["POST"])
 @login_required
 def journal_delete():
     user_id = str(current_user.id)
     entry_id = request.form.get("entry_id", "")
 
+    # if there is an issue collecting the entry id then flash error and send back to dashboard
     if not entry_id:
         flash("Missing entry id.", "danger")
         return redirect(url_for("dashboard"))
-
-    old_file_path_abs = None
+    
     conn = get_db_conn()
+    cur = conn.cursor()
+
+    
+    # get img id from journal entry and pass here to get the path
+    # should always be unique id across users but including the user id for safety
+    cur.execute("""SELECT image_id 
+                   FROM public.journal_entries 
+                   WHERE id = %s and user_id = %s 
+                   limit 1""", (entry_id, user_id))
+    img_id = cur.fetchone()[0]
+
+    # pass image id to get the path of stored imageso it can be removed later
+    cur.execute("""SELECT file_path 
+                   FROM public.images 
+                   WHERE id = %s and user_id = %s 
+                   limit 1""", (img_id, user_id))
+    img_key = cur.fetchone()[0]
+    
+    # DELETE ALL DATABASE RECORDS
+    # delete the journal entry
+    cur.execute("""DELETE 
+                   FROM public.journal_entries 
+                   WHERE id = %s AND user_id = %s ;""",
+                (entry_id, user_id))
+
+
+    # TODO remove record from user_object_images
+    cur.execute("""DELETE 
+                FROM public.user_object_images 
+                WHERE image_id = %s AND user_id = %s ;""",
+                (img_id, user_id))
+
+    # TODO remove record from images
+    cur.execute("""DELETE 
+                FROM public.images 
+                WHERE id = %s AND user_id = %s ;""",
+                (img_id, user_id))
+    conn.commit()
+    
+
+    # DELETE FROM FILE STORAGE
+    # TODO remove image file from file storage
     try:
-        with conn.cursor() as cur:
-            # verify ownership + get current image/file
-            cur.execute("""
-                SELECT je.image_id, i.file_path, je.messier_id
-                FROM public.journal_entries je
-                LEFT JOIN public.images i ON i.id = je.image_id
-                WHERE je.id = %s AND je.user_id = %s
-            """, (entry_id, user_id))
-            row = cur.fetchone()
-            if not row:
-                flash("Entry not found.", "danger")
-                return redirect(url_for("dashboard"))
-            old_img_id, old_file_path, messier_id = row
-
-            # delete the journal entry
-            cur.execute("DELETE FROM public.journal_entries WHERE id = %s AND user_id = %s",
-                        (entry_id, user_id))
-
-            # if that image is now orphaned (not referenced by any of the user's objects), remove it
-            if old_img_id:
-                cur.execute("""
-                    SELECT EXISTS (
-                        SELECT 1 FROM public.journal_entries WHERE image_id = %s
-                        UNION ALL
-                        SELECT 1 FROM public.user_object_images WHERE image_id = %s
-                    )
-                """, (str(old_img_id), str(old_img_id)))
-                still_used = cur.fetchone()[0]
-
-                if not still_used:
-                    if old_file_path:
-                        old_file_path_abs = (UPLOAD_DIR / old_file_path)
-                    cur.execute("DELETE FROM public.images WHERE id = %s", (str(old_img_id),))
-            
-            # then also delete from user_oject_images table
-            cur.execute("DELETE FROM public.user_object_images WHERE user_id = %s AND messier_id = %s",
-            (user_id, messier_id))
-        
-        conn.commit()
-        flash("Entry deleted.", "success")
+        # updated to be platform agnositic for web service deployment
+        # TODO: VALIDATE
+        p = (UPLOAD_DIR / img_key)
+        if p.exists():
+            p.unlink()
     except Exception:
-        if conn: conn.rollback()
-        app.logger.exception("Failed to delete entry")
-        flash("Failed to delete entry, please try again later.", "danger")
-    finally:
-        if conn: conn.close()
-
-    # best-effort file delete (post-commit)
-    if old_file_path_abs and os.path.exists(old_file_path_abs):
-        try:
-            os.remove(old_file_path_abs)
-        except Exception:
-            app.logger.exception("Failed to delete file %s", old_file_path_abs)
+        app.logger.exception("Failed to delete file %s", p)
 
     return redirect(url_for("dashboard"))
 
@@ -797,6 +793,8 @@ def account_delete():
     # then remove actual image files from storage
     for img in img_files:
         try:
+            # updated to be platform agnositic for web service deployment
+            # TODO: VALIDATE
             p = (UPLOAD_DIR / img)
             if p.exists():
                 p.unlink()
