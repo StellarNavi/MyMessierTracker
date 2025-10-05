@@ -384,6 +384,215 @@ def journal_new():
     # once complete return to dashboard
     return redirect(url_for("dashboard"))
     
+    
+    
+# ENHANCEMENT THREE FUNCTIONS FOR COMPLETING CRUD OPERATIONS ***************************************
+# TODO Journal Entry Edit function
+# this will allow the user to make updates to an existing journal entry (date, notes, image)
+@app.route("/journal/edit", methods=["POST"])
+@login_required
+def journal_edit():
+    user_id = str(current_user.id)
+    entry_id = request.form.get("entry_id","")
+    observed_date = request.form.get("observed_date","")
+    body_text = request.form.get("journal_text","")
+    obj_img = request.files.get("image")
+    
+    # handle in case there is an issues with fields
+    if not entry_id:
+        flash("Unable to locate record.", "danger")
+        return redirect(url_for("dashboard"))
+    try:
+        # validity should be enforced through the calendar pop-up but handle in case of error
+        obs_date = datetime.strptime(observed_date, "%Y-%m-%d").date()
+    except Exception:
+        flash("Invalid date entered","danger")
+        return redirect(url_for("dashboard"))
+    # ensure journal notes are not too long
+    if len(body_text) > 6500:
+        flash("Character limit reached!", "danger")
+        return redirect(url_for("dashboard"))
+    # check if new image loaded that its the proper extension
+    new_obj_img = bool(obj_img and obj_img.filename)
+    if new_obj_img and not _allowed(obj_img.filename):
+        flash("Please use a valid image format: JPG/PNG/WebP.", "danger")
+        return redirect(url_for("dashboard"))
+    
+    # placeholder
+    old_file_path_abs  = None
+    
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            # Ensure entry belongs to user; fetch current image + messier for linkage updates
+            cur.execute("""
+                SELECT je.id, je.image_id, je.messier_id, i.file_path
+                FROM public.journal_entries je
+                LEFT JOIN public.images i ON i.id = je.image_id
+                WHERE je.id = %s AND je.user_id = %s
+            """, (entry_id, user_id))
+            row = cur.fetchone()
+            if not row:
+                flash("Entry not found.", "danger"); return redirect(url_for("dashboard"))
+            _, old_img_id, messier_id, old_file_path = row
+
+            # If replacing the image, save new file and create images row
+            new_img_id = old_img_id
+            if new_obj_img:
+                original = secure_filename(obj_img.filename)
+                ext = original.rsplit(".", 1)[1].lower()
+                fname = f"{uuid.uuid4().hex}.{ext}"
+                abs_path = os.path.join(UPLOAD_DIR, fname)
+                rel_path = f"/static/uploads/{fname}"
+                obj_img.save(abs_path)
+
+                mime = mimetypes.guess_type(original)[0] or "application/octet-stream"
+                size = os.path.getsize(abs_path)
+
+                # insert new image row for this user
+                cur.execute("""
+                    INSERT INTO public.images (user_id, file_name, file_path, mime_type, 
+                    byte_size, created_at)
+                    VALUES (%s, %s, %s, %s, %s, NOW())
+                    RETURNING id
+                """, (user_id, original, rel_path, mime, size))
+                new_img_id = cur.fetchone()[0]
+
+                # keep user_object_images in sync for this (user, messier)
+                cur.execute("""
+                    UPDATE public.user_object_images
+                    SET image_id = %s
+                    WHERE user_id = %s AND messier_id = %s
+                """, (str(new_img_id), user_id, str(messier_id)))
+
+                # update journal to point at new image
+                cur.execute("""
+                    UPDATE public.journal_entries
+                    SET image_id = %s
+                    WHERE id = %s AND user_id = %s
+                """, (str(new_img_id), entry_id, user_id))
+
+            # Always update date/notes
+            cur.execute("""
+                UPDATE public.journal_entries
+                SET observed_date = %s,
+                    body = %s,
+                    updated_at = NOW()
+                WHERE id = %s AND user_id = %s
+            """, (obs_date, body_text, entry_id, user_id))
+
+            # If we replaced the image, try to clean up the old image row if it became orphaned
+            if new_obj_img and old_img_id:
+                # is the old image still referenced anywhere?
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT 1 FROM public.journal_entries WHERE image_id = %s
+                        UNION ALL
+                        SELECT 1 FROM public.user_object_images WHERE image_id = %s
+                    )
+                """, (str(old_img_id), str(old_img_id)))
+                still_used = cur.fetchone()[0]
+
+                if not still_used:
+                    # capture old file path then delete the DB row
+                    if old_file_path:
+                        # make absolute for later deletion post-commit
+                        old_file_path_abs = os.path.join(app.root_path, old_file_path.lstrip("/"))
+                    cur.execute("DELETE FROM public.images WHERE id = %s", (str(old_img_id),))
+
+        conn.commit()
+        flash("Journal entry updated!", "success")
+
+    except Exception:
+        if conn: conn.rollback()
+        app.logger.exception("Failed to update journal entry")
+        flash("Failed to update journal entry, please try again later", "danger")
+    finally:
+        if conn: conn.close()
+
+    # Post-commit: best-effort filesystem delete of the *old* image file (if orphaned)
+    if old_file_path_abs:
+        try:
+            if os.path.exists(old_file_path_abs):
+                os.remove(old_file_path_abs)
+        except Exception:
+            app.logger.exception("Failed to delete old file %s", old_file_path_abs)
+
+    return redirect(url_for("dashboard"))
+
+# TODO Journal Entry Delete function
+@app.route("/journal/delete", methods=["POST"])
+@login_required
+def journal_delete():
+    user_id = str(current_user.id)
+    entry_id = request.form.get("entry_id", "")
+
+    if not entry_id:
+        flash("Missing entry id.", "danger")
+        return redirect(url_for("dashboard"))
+
+    old_file_path_abs = None
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            # verify ownership + get current image/file
+            cur.execute("""
+                SELECT je.image_id, i.file_path, je.messier_id
+                FROM public.journal_entries je
+                LEFT JOIN public.images i ON i.id = je.image_id
+                WHERE je.id = %s AND je.user_id = %s
+            """, (entry_id, user_id))
+            row = cur.fetchone()
+            if not row:
+                flash("Entry not found.", "danger")
+                return redirect(url_for("dashboard"))
+            old_img_id, old_file_path, messier_id = row
+
+            # delete the journal entry
+            cur.execute("DELETE FROM public.journal_entries WHERE id = %s AND user_id = %s",
+                        (entry_id, user_id))
+
+            # if that image is now orphaned (not referenced by any of the user's objects), remove it
+            if old_img_id:
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT 1 FROM public.journal_entries WHERE image_id = %s
+                        UNION ALL
+                        SELECT 1 FROM public.user_object_images WHERE image_id = %s
+                    )
+                """, (str(old_img_id), str(old_img_id)))
+                still_used = cur.fetchone()[0]
+
+                if not still_used:
+                    if old_file_path:
+                        old_file_path_abs = os.path.join(app.root_path, old_file_path.lstrip("/"))
+                    cur.execute("DELETE FROM public.images WHERE id = %s", (str(old_img_id),))
+            
+            # then also delete from user_oject_images table
+            cur.execute("DELETE FROM public.user_object_images WHERE user_id = %s AND messier_id = %s",
+            (user_id, messier_id))
+        
+        conn.commit()
+        flash("Entry deleted.", "success")
+    except Exception:
+        if conn: conn.rollback()
+        app.logger.exception("Failed to delete entry")
+        flash("Failed to delete entry, please try again later.", "danger")
+    finally:
+        if conn: conn.close()
+
+    # best-effort file delete (post-commit)
+    if old_file_path_abs and os.path.exists(old_file_path_abs):
+        try:
+            os.remove(old_file_path_abs)
+        except Exception:
+            app.logger.exception("Failed to delete file %s", old_file_path_abs)
+
+    return redirect(url_for("dashboard"))
+
+
+
+
 
 # FLASK LOGIN --------------------------------------------------------------------------------------
 # load user from postgres by id
