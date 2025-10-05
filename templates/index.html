@@ -106,11 +106,11 @@
                   {% if e.img %}
                   <button type="button" class="btn p-0 border-0 bg-transparent view-object" title="View details"
                     data-title="{{ e.obj_title }}" data-messier="{{ e.m_number }}" data-name="{{ e.name }}"
-                    data-notes="{{ e.desc }}" data-img="{{ e.img }}" data-constellation="{{ e.constellation }}"
+                    data-notes="{{ e.desc }}" data-img="{{ url_for('files', key=e.img) }}" data-constellation="{{ e.constellation }}"
                     data-object-type="{{ e.type }}" data-object-subtype="{{ e.subtype }}" data-ra="{{ e.ra }}"
                     data-dec="{{ e.dec }}" data-mag="{{ e.mag }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}"
                     data-rarity="{{ e.rarity|e }}">
-                    <img src="{{ e.img }}" alt="thumb"
+                    <img src="{{ url_for('files', key=e.img) }}" alt="thumb"
                       style="width:64px;height:64px;object-fit:cover;border-radius:5px;border-style:solid;border-width:thin;border-color:#66cbf3;">
                   </button>
                   {% endif %}

@@ -2,6 +2,7 @@
 
 #imports
 from datetime import datetime
+from pathlib import Path, PurePosixPath
 
 # for img upload
 import mimetypes    
@@ -14,7 +15,7 @@ import psycopg2
 from dotenv import load_dotenv
 
 # core Flask app functionality for requests and responses
-from flask import (Flask, render_template, request, redirect, url_for, flash, session)
+from flask import (Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, abort)
 
 # password hash
 from flask_bcrypt import Bcrypt
@@ -41,10 +42,19 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)       
 login_manager.login_view = 'login'      
 
+
+# for testing between dev and prod
+DEPLOYED = os.getenv('DEPLOYED')
+if DEPLOYED == 'TRUE':
+    UPLOAD_DIR = Path("/var/user_uploads").resolve()
+else:
+    UPLOAD_DIR = (Path(app.root_path).resolve().parent / "user_uploads").resolve()
+
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
 # for the image loads within the pop-up journal entry
 ALLOWED_EXT = {"jpg","jpeg","png","webp"}
-UPLOAD_DIR = os.path.join(app.root_path, "static", "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 
 
 # establish postgres connection and pull from env variables 
@@ -54,6 +64,27 @@ DB_PORT = int(os.getenv("DB_PORT"))
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_PASS")
+
+# function to allow resolving files on server outside of project path
+@app.get("/files/<path:key>")
+def files(key):
+    target = (UPLOAD_DIR / key).resolve()
+    # traversal guard: only serve files under UPLOAD_DIR
+    if UPLOAD_DIR not in target.parents and target != UPLOAD_DIR:
+        abort(404)
+    return send_from_directory(str(UPLOAD_DIR), key)
+
+
+# helpers for keys (adding)
+def make_key(original_filename: str) -> str:
+    ext = (Path(original_filename).suffix or "").lower()
+    return str(PurePosixPath(f"{uuid.uuid4().hex}{ext}"))  # e.g. 'a1b2c3.jpg'
+
+def save_to_uploads(file_storage, key: str) -> Path:
+    dest = (UPLOAD_DIR / key)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    file_storage.save(str(dest))
+    return dest
 
 # function for db connection info for reuse
 def get_db_conn():
@@ -305,21 +336,15 @@ def journal_new():
         flash("Invalid observed date.", "danger")
         return redirect(url_for("dashboard"))
 
-    # save file locally under /static/uploads/<uuid>.<ext> **may move to cloud in future**
     original = secure_filename(file.filename)
-    ext = original.rsplit(".",1)[1].lower()
-    
-    # generate unique name for the img file and store
-    fname = f"{uuid.uuid4().hex}.{ext}"
-    abs_path = os.path.join(UPLOAD_DIR, fname)
-    rel_path = f"/static/uploads/{fname}"
-    file.save(abs_path)
+    key = make_key(original)                 # e.g. 'a1b2c3.jpg'
+    dest = save_to_uploads(file, key)        # writes to UPLOAD_DIR/key
     
     # determine the image type to properly render in browser, will revist in future when/if moved to
     # AWS S3 bucket: https://repost.aws/questions/QU8PZcrxbhTPq8defuJBF0fA/determine-real-file-type-
     # mime-of-an-uploaded-object-in-s3
     mime = mimetypes.guess_type(original)[0] or "application/octet-stream"
-    size = os.path.getsize(abs_path)
+    size = dest.stat().st_size
 
     # write to Postgres: images > user_object_images > journal_entries
     conn = get_db_conn()
@@ -331,7 +356,7 @@ def journal_new():
                                            mime_type, byte_size, created_at)
                 VALUES (%s, %s, %s, %s, %s, NOW())
                 RETURNING id
-            """, (user_id, original, rel_path, mime, size))
+            """, (user_id, original, key, mime, size))
             img_id = cur.fetchone()[0]
 
             # upsert ensures that only a single image per user per object is allowed by chekcing if 
@@ -440,14 +465,11 @@ def journal_edit():
             new_img_id = old_img_id
             if new_obj_img:
                 original = secure_filename(obj_img.filename)
-                ext = original.rsplit(".", 1)[1].lower()
-                fname = f"{uuid.uuid4().hex}.{ext}"
-                abs_path = os.path.join(UPLOAD_DIR, fname)
-                rel_path = f"/static/uploads/{fname}"
-                obj_img.save(abs_path)
+                key = make_key(original)
+                dest = save_to_uploads(obj_img, key)
 
                 mime = mimetypes.guess_type(original)[0] or "application/octet-stream"
-                size = os.path.getsize(abs_path)
+                size = dest.stat().st_size
 
                 # insert new image row for this user
                 cur.execute("""
@@ -455,7 +477,7 @@ def journal_edit():
                     byte_size, created_at)
                     VALUES (%s, %s, %s, %s, %s, NOW())
                     RETURNING id
-                """, (user_id, original, rel_path, mime, size))
+                """, (user_id, original, key, mime, size))
                 new_img_id = cur.fetchone()[0]
 
                 # keep user_object_images in sync for this (user, messier)
@@ -497,7 +519,7 @@ def journal_edit():
                     # capture old file path then delete the DB row
                     if old_file_path:
                         # make absolute for later deletion post-commit
-                        old_file_path_abs = os.path.join(app.root_path, old_file_path.lstrip("/"))
+                        old_file_path_abs = (UPLOAD_DIR / old_file_path)
                     cur.execute("DELETE FROM public.images WHERE id = %s", (str(old_img_id),))
 
         conn.commit()
@@ -565,7 +587,7 @@ def journal_delete():
 
                 if not still_used:
                     if old_file_path:
-                        old_file_path_abs = os.path.join(app.root_path, old_file_path.lstrip("/"))
+                        old_file_path_abs = (UPLOAD_DIR / old_file_path)
                     cur.execute("DELETE FROM public.images WHERE id = %s", (str(old_img_id),))
             
             # then also delete from user_oject_images table
@@ -775,9 +797,9 @@ def account_delete():
     # then remove actual image files from storage
     for img in img_files:
         try:
-            abs_path = os.path.join(app.root_path, img.lstrip("/"))
-            if os.path.exists(abs_path):
-                os.remove(abs_path)
+            p = (UPLOAD_DIR / img)
+            if p.exists():
+                p.unlink()
         except Exception:
             app.logger.exception("Failed to delete file %s", img)
 
