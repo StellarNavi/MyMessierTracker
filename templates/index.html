@@ -77,6 +77,8 @@
         </h4>
       </div>
 
+      {% set PLACEHOLDER = url_for('static', filename='messier_images/placeholder.png') %}
+
       <!-- body section for journal entries--->
       <div class="card-body p-3" id="journal-list" style="color:#f7f7f7;">
         <!-- use Jinja2 to build out a dynamic table for user journal -->
@@ -96,31 +98,36 @@
                 <!-- Enhancement 3: Complete CRUD Operations (add edit and delete functionality) -->
                 <th style="width:60px;">Edit</th>
                 <th style="width:60px;">Delete</th>
+
               </tr>
             </thead>
             <tbody>
               {% for e in entries %}
-              <tr>
+              <!-- grey out rows where the object has not yet been captured -->
+              <tr class="{{ 'is-missing' if not e.date else '' }}">
                 <td>
-                  <!-- thumbnail img -->
-                  {% if e.img %}
+                  <!-- if object has been capturedby user then use the users imge else use NASA's img else use placeholder -->
+                  {% set img_src = (url_for('files', key=e.img) if (e.date and e.img)
+                  else (url_for('static', filename='messier_images/' ~ e.nasa_img) if e.nasa_img else PLACEHOLDER)) %}
                   <button type="button" class="btn p-0 border-0 bg-transparent view-object" title="View details"
                     data-title="{{ e.obj_title }}" data-messier="{{ e.m_number }}" data-name="{{ e.name }}"
-                    data-notes="{{ e.desc }}" data-img="{{ url_for('files', key=e.img) }}" data-constellation="{{ e.constellation }}"
+                    data-notes="{{ e.desc }}" data-img="{{ img_src }}" data-constellation="{{ e.constellation }}"
                     data-object-type="{{ e.type }}" data-object-subtype="{{ e.subtype }}" data-ra="{{ e.ra }}"
-                    data-dec="{{ e.dec }}" data-mag="{{ e.mag }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}"
-                    data-rarity="{{ e.rarity|e }}">
-                    <img src="{{ url_for('files', key=e.img) }}" alt="thumb"
+                    data-dec="{{ e.dec }}" data-mag="{{ e.mag }}" data-obs="{{ e.date or 'Not Captured' }}"
+                    data-journal="{{ e.body|e }}" data-rarity="{{ e.rarity|e }}">
+                    <!-- referencing a placeholder when there is an error loading the image -->
+                    <img src="{{ img_src }}" alt="thumbnail" onerror="this.onerror=null;this.src='{{ PLACEHOLDER }}';"
                       style="width:64px;height:64px;object-fit:cover;border-radius:5px;border-style:solid;border-width:thin;border-color:#66cbf3;">
                   </button>
-                  {% endif %}
                 </td>
+
+
                 <!-- <td> M{{ e.m_number }} </td> -->
 
                 <!-- enhancement 2: add stars next to rare items in users journal -->
                 <td>
                   {% set rank = rare_ranks.get(e.id) %}
-                  {% if rank %}
+                  {% if e.date and rank %}
                   <!-- star colors by rarity rank -->
                   {% set color = '#ffd700' if rank == 1 else '#c0c0c0' if rank == 2 else '#cd7f32' %}
                   <span title="Rare find! Only {{ e.rarity }}% of users have logged this object."
@@ -133,33 +140,36 @@
                 <td> {{ e.type }} </td>
                 <td> {{ e.constellation }} </td>
                 <td> {{ e.date }} </td>
-                <!-- includes list of fields to pass to the pop-up once clicked (auto formating keeps changing.. look into) -->
-                <!-- <td>
-                  <button type="button" class="btn btn-info btn-md view-object" title="View details"
-                    data-title="{{e.obj_title}}" data-messier="{{ e.m_number }}" data-name="{{ e.name }}"
-                    data-notes="{{ e.desc }}" data-img="{{ e.img }}" data-constellation="{{ e.constellation }}"
-                    data-object-type="{{ e.type }}" data-object-subtype="{{ e.subtype }}" data-ra="{{ e.ra }}"
-                    data-dec="{{ e.dec }}" data-mag="{{ e.mag }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}"
-                    data-rarity="{{ e.rarity|e}}">
-                    <i class="bi bi-box-arrow-up-right Large"></i>
-                  </button> -->
+
                 </td>
                 <!-- Enhancement 3: Complete CRUD Operations (add edit and delete functionality) -->
-                <!-- UPDATE -->
+                 <!-- 10/8 - udpated to account for showing the uncollected records as well -->
                 <td>
+                  <!-- EDIT -->
+                  {% if e.date %}
                   <button type="button" class="btn btn-info btn-md entry-edit" title="Edit Record"
                     data-entry-id="{{ e.id }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}">
                     <i class="bi bi-pencil Large"></i>
                   </button>
+                  {% else %}
+                  <!-- if user entry does not yet exist, allow for adding and pass that Messier ID to the add modal-->
+                  <button type="button" class="btn btn-primary btn-md add-entry" title="Add Entry"
+                    data-m-number="{{ e.m_number }}">
+                    <i class="bi bi-plus Large"></i>
+                  </button>
+                  {% endif %}
                 </td>
                 <!-- DELETE -->
                 <td>
+                  {% if e.date %}
                   <button type="button" class="btn btn-info btn-md delete-entry" title="Delete Record"
                     data-entry-id="{{ e.id }}" data-object="M{{ e.m_number }} — {{ e.name }}">
                     <i class="bi bi-trash Large"></i>
                   </button>
+                  {% else %}
+                  <!-- empty on purpose -->
+                  {% endif %}
                 </td>
-
 
 
               </tr>
@@ -223,6 +233,35 @@
       new bootstrap.Modal(document.getElementById('editModal')).show();
     });
   </script>
+  <script>
+    document.addEventListener('click', function (ev) {
+      const btn = ev.target.closest('.add-entry');
+      if (!btn) return;
+
+      const mNum = String(btn.dataset.mNumber || '').trim();
+      const modalEl = document.getElementById('uploadModal');
+      const select = modalEl.querySelector('select[name="messier_id"]');
+
+      // Preselect the option whose text starts with "<m_number> —"
+      if (select) {
+        for (const opt of select.options) {
+          if (opt.textContent.trim().startsWith(mNum + ' —')) {
+            select.value = opt.value;
+            break;
+          }
+        }
+      }
+
+      // Clear inputs
+      modalEl.querySelector('input[name="observed_date"]').value = '';
+      modalEl.querySelector('input[name="image"]').value = '';
+      modalEl.querySelector('textarea[name="journal_text"]').value = '';
+
+      // Show modal
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+  </script>
+
 
 
   <!-- ENHANCEMENT THREE DELETE MODAL -->
@@ -613,8 +652,9 @@
   </script>
 
 
-  <!-- pop-up for seeing the object data and journal entry in more detail -->
+  <!-- MODAL: OBJECT DETAILS ------------------------------------------------------------------- -->
   <script>
+    const PLACEHOLDER_IMG = "{{ PLACEHOLDER }}"; // handles all three cases of image loads
     // funciton to show the modal
     function openObjectModal(d) {
       const setText = (id, val) => document.getElementById(id).textContent = (val ?? '—');
@@ -623,8 +663,9 @@
 
 
       const imgEl = document.getElementById('objectImage');
-      imgEl.src = d.img || '';
-      imgEl.alt = d.obj_title || ''; //test
+      imgEl.onerror = function () { this.onerror = null; this.src = PLACEHOLDER_IMG; };
+      imgEl.src = d.img || PLACEHOLDER_IMG;
+      imgEl.alt = d.obj_title || 'Messier object'; //test
 
       setText('objectNotes', d.notes);
       setText('objectConstellation', d.constellation);
@@ -633,7 +674,14 @@
       setText('objectRA', d.ra_hours);
       setText('objectDec', d.dec_degrees);
       setText('objectMag', d.magnitude);
-      setText('obsDate', d.observation_date);
+
+      // date: “Not Captured” in pinkish red when empty/None
+      const obsEl = document.getElementById('obsDate');
+      if (d.observation_date && d.observation_date !== 'Not Captured') {
+        obsEl.textContent = d.observation_date;
+      } else {
+        obsEl.innerHTML = '<span style="color:#ff6b9c;font-weight:600;">Not Captured</span>';
+      }
 
       // Journal text may have newlines; it’s safely rendered as text
       const j = document.getElementById('journalText');
