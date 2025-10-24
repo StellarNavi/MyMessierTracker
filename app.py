@@ -123,7 +123,7 @@ def landing():
     # if they’re already logged in, send to the dashboard instead
     if current_user.is_authenticated:
         return redirect(url_for("dashboard"))
-    return render_template("landing.html")
+    return render_template("login.html")
 
 
 # DASHBOARD PAGE -----------------------------------------------------------------------------------
@@ -763,6 +763,13 @@ def profile():
 @app.route("/about")
 def about():
     return render_template("about.html", show_particles=False, user=current_user)
+
+
+# RESOURCES PAGE VIEW -------------------------------------------------------------------------------
+# simple route to a short page that provides some astro resources 
+@app.route("/resources")
+def resources():
+    return render_template("resources.html", show_particles=False, user=current_user)
 
 # DELETE ACCOUNT PAGE VIEW -------------------------------------------------------------------------
 # wip

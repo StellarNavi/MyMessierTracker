@@ -2,6 +2,29 @@
 
 {% block head %}
 <script src="https://code.highcharts.com/highcharts.js"></script>
+<style>
+  th.sortable {
+    position: relative;
+    user-select: none;
+    cursor: pointer;
+  }
+
+  /* show a neutral ↕ when unsorted, ▲ for asc, ▼ for desc */
+  th.sortable::after {
+    content: ' ↕';
+    opacity: .6;
+    font-size: .8em;
+    margin-left: .25rem;
+  }
+
+  th.sortable[data-order="asc"]::after {
+    content: ' ▲';
+  }
+
+  th.sortable[data-order="desc"]::after {
+    content: ' ▼';
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -53,13 +76,14 @@
           <thead>
             <tr>
               <!-- test column widths fit with resizing page -->
-              <th style="width:90px;"> Image <i class="bi bi-box-arrow-up-right ms-2" aria-hidden="true"></i>
+              <th style="width:90px;"> Image <i class="bi bi-box-arrow-up-right ms-2" aria-hidden="true"
+                  style="font-size:0.85em; color:#999;"></i>
               </th>
-              <th style="width:120px;">Messier #</th>
-              <th style="width:200px;">Name</th>
-              <th style="width:200px;">Type</th>
-              <th style="width:200px;">Constellation</th>
-              <th style="width:140px;">Date Captured</th>
+              <th class="sortable" data-type="num">Messier #</th>
+              <th class="sortable" data-type="str">Name</th>
+              <th class="sortable" data-type="str">Type</th>
+              <th class="sortable" data-type="str">Constellation</th>
+              <th class="sortable" data-type="date">Date Captured</th>
               <!-- <th style="width:140px;">More Details</th> -->
               <!-- Enhancement 3: Complete CRUD Operations (add edit and delete functionality) -->
               <th style="width:60px;">Edit</th>
@@ -84,7 +108,7 @@
                   data-journal="{{ e.body|e }}" data-rarity="{{ e.rarity|e }}">
                   <!-- referencing a placeholder when there is an error loading the image -->
                   <img src="{{ img_src }}" alt="thumbnail" onerror="this.onerror=null;this.src='{{ PLACEHOLDER }}';"
-                    style="width:64px;height:64px;object-fit:cover;border-radius:5px;border-style:solid;border-width:thin;border-color:#66cbf3;">
+                    style="width:64px;height:64px;object-fit:cover;border-radius:2px;border-style:solid;border-width:thin;border-color:#66cbf3;">
                 </button>
               </td>
 
@@ -144,6 +168,67 @@
           </tbody>
         </table>
       </div>
+
+      <script>
+        (function () {
+          const table = document.querySelector('#journal-list table');
+          if (!table) return;
+
+          const tbody = table.querySelector('tbody');
+          const headers = table.querySelectorAll('th.sortable');
+
+          // simple caret indicator
+          const setIndicator = (th, dir) => {
+            headers.forEach(h => h.dataset.order = '');
+            th.dataset.order = dir; // 'asc' | 'desc'
+          };
+
+          const getCellText = (tr, idx) => (tr.children[idx]?.textContent || '').trim();
+
+          const parsers = {
+            num: s => {
+              // supports values like "★ M11" -> 11
+              const m = String(s).match(/-?\d+(\.\d+)?/);
+              return m ? parseFloat(m[0]) : Number.NEGATIVE_INFINITY;
+            },
+            str: s => String(s).toLowerCase(),
+            date: s => {
+              // treat empty/None as far past so they sort last in ASC
+              if (!s || s.toLowerCase() === 'none') return '9999-12-31';
+              // keep ISO (YYYY-MM-DD). If not ISO, Date.parse fallback:
+              return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : new Date(s).toISOString();
+            }
+          };
+
+          // added sortable table
+          headers.forEach((th, colIdx) => {
+            th.style.cursor = 'pointer';
+            th.addEventListener('click', () => {
+              const colIdx = th.cellIndex;             // <-- key fix
+              const type = th.dataset.type || 'str';
+              const cur = th.dataset.order;
+              const dir = cur === 'asc' ? 'desc' : 'asc';
+              setIndicator(th, dir);
+
+              const rows = Array.from(tbody.querySelectorAll('tr'));
+              const parse = parsers[type];
+
+              rows.sort((a, b) => {
+                const A = parse(getCellText(a, colIdx));
+                const B = parse(getCellText(b, colIdx));
+                if (A < B) return dir === 'asc' ? -1 : 1;
+                if (A > B) return dir === 'asc' ? 1 : -1;
+                return 0;
+              });
+
+              // reattach in new order
+              rows.forEach(r => tbody.appendChild(r));
+            });
+          });
+        })();
+      </script>
+
+
       {% else %}
       <em>No entries yet. Click the <i class="bi bi-journal-plus"></i> icon in the bottom right to begin adding
         observations!</em>
