@@ -1,0 +1,50 @@
+<!-- reusable footer   -->
+<footer class="mt-5" style="position:relative; z-index:1; border-top:1px solid #8b537f; 
+                            background-color:#130c11;position:relative; z-index:1;">
+    <div class="container py-3">
+        <div class="row g-3 align-items-center">
+
+            <!-- site logo area on left side -->
+            <div class="col-12 col-md-4 text-center text-md-start">
+                <!-- <a href="{{ url_for('dashboard') }}" class="d-inline-flex align-items-center
+                                                     text-decoration-none">
+                    <img src="{{ url_for('static', filename='img/MyMessierTracker_header_v2.png') }}"
+                        alt="My Messier Tracker" style="height:25px; width:auto;">
+                </a> -->
+                <!-- copyright -->
+                <div class="medium text mt-0" style="color:#9c5c86;">© 2025 MyMessierTracker</div>
+            </div>
+
+            <!-- misc links like about page-->
+            <div class="col-12 col-md-4 text-center">
+                <nav class="nav justify-content-center gap-4" style="font-size:1.25rem; font-weight:400;">
+                    <a class="nav-link px-0 text-light" href="{{ url_for('dashboard') }}">Home</a>
+                    <a class="nav-link px-0 text-light" href="{{ url_for('about') }}">About</a>
+                    <!-- placeholder - maybe change to a Contact link? or maybe some astro resources?-->
+                    <a class="nav-link px-0 text-light" href="{{ url_for('about') }}">Resources</a>
+
+                </nav>
+            </div>
+
+            <!-- testing with some social media icons -->
+            <div class="col-12 col-md-4 text-center text-md-end">
+                <div class="d-flex justify-content-center justify-content-md-end gap-4">
+                    <a class="text-light" href="https://github.com/StellarNavi" target="_blank" rel="noopener"
+                        aria-label="GitHub">
+                        <i class="bi bi-github fs-4" style="color:#9c5c86;"></i>
+                    </a>
+                    <!-- placeholder - I dont have an X, figure out a 3rd liknk or just remove? -->
+                    <a class="text-light" href="https://x.com/NASA" target="_blank" rel="noopener"
+                        aria-label="X (Twitter)">
+                        <i class="bi bi-twitter-x fs-4" style="color:#9c5c86;"></i>
+                    </a>
+                    <a class="text-light" href="https://www.instagram.com/stellarnavi/" target="_blank" rel="noopener"
+                        aria-label="Instagram">
+                        <i class="bi bi-instagram fs-4" style="color:#9c5c86;"></i>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</footer>

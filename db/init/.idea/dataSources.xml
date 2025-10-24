@@ -8,5 +8,12 @@
       <jdbc-url>jdbc:postgresql://localhost:5432/messier</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="messierdb_ozgr@dpg-d3glaehr0fns73bnv3l0-a.oregon-postgres.render.com" uuid="5d48b25b-bb39-4fb9-a98d-06434b78270d">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://dpg-d3glaehr0fns73bnv3l0-a.oregon-postgres.render.com:5432/messierdb_ozgr</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

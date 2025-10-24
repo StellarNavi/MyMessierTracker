@@ -117,6 +117,15 @@ class User(UserMixin):
         }
 
 
+# LANDING PAGE
+@app.route("/landing")
+def landing():
+    # if they’re already logged in, send to the dashboard instead
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard"))
+    return render_template("landing.html")
+
+
 # DASHBOARD PAGE -----------------------------------------------------------------------------------
 # loads the 'home' screen data for catalog totals and progress stats as well as user journal entries
 # like  messier object dropdown, object names, notes, etc
@@ -302,7 +311,7 @@ def dashboard():
     current_user.progress = progress
     del_error = request.args.get("del_error") == "1"
     
-    return render_template("index.html", user=current_user, objects=objects, entries=entries,
+    return render_template("index.html", show_particles=False, user=current_user, objects=objects, entries=entries,
                        catalog_totals=catalog_totals, del_error=del_error, 
                        capture_next=capture_next,
                        capture_next_galaxy = capture_next_galaxy, 
@@ -729,7 +738,7 @@ def register():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for("login"))
+    return redirect(url_for("landing"))
 
 # PROFILE PAGE VIEW -------------------------------------------------------------------------------
 # placeholder 
@@ -743,7 +752,7 @@ def profile():
 @app.route("/about")
 @login_required
 def about():
-    return render_template("about.html", user=current_user)
+    return render_template("about.html", show_particles=False, user=current_user)
 
 # DELETE ACCOUNT PAGE VIEW -------------------------------------------------------------------------
 # wip

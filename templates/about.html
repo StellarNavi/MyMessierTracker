@@ -1,8 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+
 <!-- ABOUT PAGE: Misc info about the app -->
 <!doctype html>
 <html lang="en">
 
-<!-- PAGE HEADER ------------------------------------------------------------------------------- -->
+<!-- ABOUT PAGE HEADER ------------------------------------------------------------------------------- -->
+
 <head>
   <meta charset="utf-8">
   <title>About • My Messier Tracker</title>
@@ -10,6 +15,7 @@
 </head>
 
 <!-- PAGE BODY --------------------------------------------------------------------------------- -->
+
 <body style="background:#151416; color:#f4f2f5;">
   <div class="container py-4">
     <h1>About</h1>
@@ -53,50 +59,7 @@
 
 </body>
 
-<!-- PAGE FOOTER ------------------------------------------------------------------------------- -->
- <!-- same as dashboard page, move to base template? -->
-<footer class="mt-5" style="position:relative; z-index:1; border-top:2px solid #8b537f; background-color:#1a1a1a;">
-  <div class="container py-4">
-    <div class="row g-4 align-items-center">
-
-      <!-- Site logo area -->
-      <div class="col-12 col-md-4 text-center text-md-start">
-        <a href="{{ url_for('dashboard') }}" class="d-inline-flex align-items-center text-decoration-none">
-          <img src="{{ url_for('static', filename='img/MyMessierTracker_header_V2.png') }}" alt="My Messier Tracker"
-            style="height:50px; width:auto;">
-        </a>
-        <div class="small text mt-0">© 2025 My Messier Tracker</div>
-        
-      </div>
-
-      <!-- misc links like about page-->
-      <div class="col-12 col-md-4 text-center">
-        <nav class="nav justify-content-center gap-3">
-          <a class="nav-link px-0 text-light" href="{{ url_for('dashboard') }}">Home</a>
-          <a class="nav-link px-0 text-light" href="{{ url_for('about') }}">Resources</a>
-        </nav>
-      </div>
-
-      <!-- testing with some social media icons -->
-      <div class="col-12 col-md-4 text-center text-md-end">
-        <div class="d-flex justify-content-center justify-content-md-end gap-3">
-          <a class="text-light" href="https://github.com/StellarNavi" target="_blank" rel="noopener"
-            aria-label="GitHub">
-            <i class="bi bi-github fs-4"></i>
-          </a>
-          <a class="text-light" href="https://www.instagram.com/stellarnavi/" target="_blank" rel="noopener"
-            aria-label="Instagram">
-            <i class="bi bi-instagram fs-4"></i>
-          </a>
-          <!-- placeholder, just examples for a more professional look since I dont have an X account -->
-          <a class="text-light" href="https://x.com/NASA" target="_blank" rel="noopener" aria-label="X (Twitter)">
-            <i class="bi bi-twitter-x fs-4"></i>
-          </a>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</footer>
 
 </html>
+
+{% endblock %}
