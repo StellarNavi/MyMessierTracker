@@ -164,28 +164,36 @@ def dashboard():
             
             # Main dataset for all journal data (sorted by latest observed_date first as default)
             cur.execute("""
+                with je as (select je.id,
+                                je.messier_id,
+                                je.observed_date,
+                                je.body,
+                                je.image_id,
+                                je.updated_at
+                            from public.journal_entries je
+                            WHERE je.user_id = %s)
                 SELECT je.id,
-                       mo.messier_number,
-                       COALESCE(mo.common_name,'') AS name,
-                       je.observed_date,
-                       je.body,
-                       i.file_path,
-                       mo.constellation,
-                       mo.object_type,
-                       mo.ra_hours,
-                       mo.dec_degrees,
-                       mo.magnitude,
-                       mo.notes as description,
-                       mo.object_subtype,
-                       mo.url as nasa_url,    
-                       'M' || mo.messier_number::varchar || ': ' || mo.common_name as obj_title,
-                       r.rarity_pct as rarity
-                FROM public.journal_entries je
-                JOIN public.messier_objects mo ON mo.id = je.messier_id
-                LEFT JOIN public.images i ON i.id = je.image_id
-                LEFT JOIN public.v_object_rarity r on mo.id = r.messier_id
-                WHERE je.user_id = %s
-                ORDER BY je.observed_date DESC, je.updated_at DESC
+                    mo.messier_number,
+                    COALESCE(mo.common_name, '')                                AS name,
+                    je.observed_date,
+                    je.body,
+                    i.file_path,
+                    mo.constellation,
+                    mo.object_type,
+                    mo.ra_hours,
+                    mo.dec_degrees,
+                    mo.magnitude,
+                    mo.notes                                                    as description,
+                    mo.object_subtype,
+                    mo.url                                                      as nasa_url,
+                    'M' || mo.messier_number::varchar || ': ' || mo.common_name as obj_title,
+                    r.rarity_pct                                                as rarity,
+                    mo.nasa_image_key
+                FROM public.messier_objects mo
+                        left join je
+                                on mo.id = je.messier_id
+                        LEFT JOIN public.images i ON i.id = je.image_id
+                        LEFT JOIN public.v_object_rarity r on mo.id = r.messier_id
             """, (user_id,))
             # variables for Jinja/Bootstrap to pull in 
             entries = [{
@@ -204,7 +212,8 @@ def dashboard():
                 "subtype":r[12],
                 "nasa_url":r[13],
                 "obj_title":r[14],
-                "rarity":r[15] # Enahancement #2: Rarity metric
+                "rarity":r[15], # Enahancement #2: Rarity metric
+                "nasa_img":r[16]
             } for r in cur.fetchall()]
             
             # ENHANCEMENT 2: implement a rarity score and use it to show the top remaining items 
@@ -216,7 +225,9 @@ def dashboard():
             rare_ids = [
                     e["id"] for e in sorted(
                         # only identifies entry as rare if less than half of users have logged it
-                        (e for e in entries if e.get("rarity") is not None and e["rarity"] < 50),
+                        # 10/8 update - now also takes into consideration only those captured
+                        (e for e in entries if e.get("rarity") is not None and e["rarity"] < 50
+                         and e.get("date")),
                         key=lambda x: x["rarity"])[:3]
                     ]
             # order the ranks to be tagged with gold, silver, bronze later
@@ -750,7 +761,6 @@ def profile():
 # ABOUT PAGE VIEW -------------------------------------------------------------------------------
 # simple route to a short page that provides more information about the application 
 @app.route("/about")
-@login_required
 def about():
     return render_template("about.html", show_particles=False, user=current_user)
 

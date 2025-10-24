@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS public.messier_objects (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   distance_ly NUMERIC,
   object_subtype TEXT,        
-  url           TEXT          
+  url           TEXT,
+  nasa_image_key TEXT          
 );
 
 -- USERS -----------------------------------------------------------------------

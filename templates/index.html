@@ -10,7 +10,7 @@
 
 
 <!-- main page info -->
-<div style="position: relative; z-index: 1;" class="container mt-4">
+<div style="position: relative; " class="container mt-4">
 
   <!-- Prog bar title -->
   <h4 class="m-0 w-100 text-center" , style="color:#f4f2f5; font-weight:bold; font-size: 40px;">Total Objects Captured
@@ -32,6 +32,7 @@
   </div>
 
   <!-- Journal section  - 8d9edb -->
+
   <div class="card mt-4" style="background-color:#252c425d; border:2px solid #6b507c;">
     <div class="card-header position-relative d-flex justify-content-center align-items-center"
       style="background-color:#252c4200; border-bottom:2px solid #a97fc4;">
@@ -39,6 +40,9 @@
         {{ (user.user_name or user.username or user.name)|default('Astronomer', true) }}'s Journal
       </h4>
     </div>
+
+
+    {% set PLACEHOLDER = url_for('static', filename='messier_images/placeholder.png') %}
 
     <!-- body section for journal entries--->
     <div class="card-body p-3" id="journal-list" style="color:#f7f7f7;">
@@ -49,7 +53,8 @@
           <thead>
             <tr>
               <!-- test column widths fit with resizing page -->
-              <th style="width:90px;"> Image <i class="bi bi-box-arrow-up-right ms-2" aria-hidden="true"></i> </th>
+              <th style="width:90px;"> Image <i class="bi bi-box-arrow-up-right ms-2" aria-hidden="true"></i>
+              </th>
               <th style="width:120px;">Messier #</th>
               <th style="width:200px;">Name</th>
               <th style="width:200px;">Type</th>
@@ -59,32 +64,37 @@
               <!-- Enhancement 3: Complete CRUD Operations (add edit and delete functionality) -->
               <th style="width:60px;">Edit</th>
               <th style="width:60px;">Delete</th>
+
             </tr>
           </thead>
           <tbody>
             {% for e in entries %}
-            <tr>
+            <!-- grey out rows where the object has not yet been captured -->
+            <tr class="{{ 'is-missing' if not e.date else '' }}">
               <td>
-                <!-- thumbnail img -->
-                {% if e.img %}
+                <!-- if object has been capturedby user then use the users imge else use NASA's img else use placeholder -->
+                {% set img_src = (url_for('files', key=e.img) if (e.date and e.img)
+                else (url_for('static', filename='messier_images/' ~ e.nasa_img) if e.nasa_img else
+                PLACEHOLDER)) %}
                 <button type="button" class="btn p-0 border-0 bg-transparent view-object" title="View details"
                   data-title="{{ e.obj_title }}" data-messier="{{ e.m_number }}" data-name="{{ e.name }}"
-                  data-notes="{{ e.desc }}" data-img="{{ url_for('files', key=e.img) }}"
-                  data-constellation="{{ e.constellation }}" data-object-type="{{ e.type }}"
-                  data-object-subtype="{{ e.subtype }}" data-ra="{{ e.ra }}" data-dec="{{ e.dec }}"
-                  data-mag="{{ e.mag }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}"
-                  data-rarity="{{ e.rarity|e }}">
-                  <img src="{{ url_for('files', key=e.img) }}" alt="thumb"
-                    style="width:64px;height:64px;object-fit:cover;border-radius:2px;border-style:solid;border-width:thin;border-color:#a0d7ee;">
+                  data-notes="{{ e.desc }}" data-img="{{ img_src }}" data-constellation="{{ e.constellation }}"
+                  data-object-type="{{ e.type }}" data-object-subtype="{{ e.subtype }}" data-ra="{{ e.ra }}"
+                  data-dec="{{ e.dec }}" data-mag="{{ e.mag }}" data-obs="{{ e.date or 'Not Captured' }}"
+                  data-journal="{{ e.body|e }}" data-rarity="{{ e.rarity|e }}">
+                  <!-- referencing a placeholder when there is an error loading the image -->
+                  <img src="{{ img_src }}" alt="thumbnail" onerror="this.onerror=null;this.src='{{ PLACEHOLDER }}';"
+                    style="width:64px;height:64px;object-fit:cover;border-radius:5px;border-style:solid;border-width:thin;border-color:#66cbf3;">
                 </button>
-                {% endif %}
               </td>
+
+
               <!-- <td> M{{ e.m_number }} </td> -->
 
               <!-- enhancement 2: add stars next to rare items in users journal -->
               <td>
                 {% set rank = rare_ranks.get(e.id) %}
-                {% if rank %}
+                {% if e.date and rank %}
                 <!-- star colors by rarity rank -->
                 {% set color = '#ffd700' if rank == 1 else '#c0c0c0' if rank == 2 else '#cd7f32' %}
                 <span title="Rare find! Only {{ e.rarity }}% of users have logged this object."
@@ -97,33 +107,36 @@
               <td> {{ e.type }} </td>
               <td> {{ e.constellation }} </td>
               <td> {{ e.date }} </td>
-              <!-- includes list of fields to pass to the pop-up once clicked (auto formating keeps changing.. look into) -->
-              <!-- <td>
-                  <button type="button" class="btn btn-info btn-md view-object" title="View details"
-                    data-title="{{e.obj_title}}" data-messier="{{ e.m_number }}" data-name="{{ e.name }}"
-                    data-notes="{{ e.desc }}" data-img="{{ e.img }}" data-constellation="{{ e.constellation }}"
-                    data-object-type="{{ e.type }}" data-object-subtype="{{ e.subtype }}" data-ra="{{ e.ra }}"
-                    data-dec="{{ e.dec }}" data-mag="{{ e.mag }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}"
-                    data-rarity="{{ e.rarity|e}}">
-                    <i class="bi bi-box-arrow-up-right Large"></i>
-                  </button> -->
-              </td>
+
+
               <!-- Enhancement 3: Complete CRUD Operations (add edit and delete functionality) -->
-              <!-- UPDATE -->
+              <!-- 10/8 - udpated to account for showing the uncollected records as well -->
               <td>
+                <!-- EDIT -->
+                {% if e.date %}
                 <button type="button" class="btn btn-info btn-md entry-edit" title="Edit Record"
                   data-entry-id="{{ e.id }}" data-obs="{{ e.date }}" data-journal="{{ e.body|e }}">
                   <i class="bi bi-pencil Large"></i>
                 </button>
+                {% else %}
+                <!-- if user entry does not yet exist, allow for adding and pass that Messier ID to the add modal-->
+                <button type="button" class="btn btn-primary btn-md add-entry" title="Add Entry"
+                  data-m-number="{{ e.m_number }}">
+                  <i class="bi bi-plus Large"></i>
+                </button>
+                {% endif %}
               </td>
               <!-- DELETE -->
               <td>
+                {% if e.date %}
                 <button type="button" class="btn btn-info btn-md delete-entry" title="Delete Record"
                   data-entry-id="{{ e.id }}" data-object="M{{ e.m_number }} — {{ e.name }}">
                   <i class="bi bi-trash Large"></i>
                 </button>
+                {% else %}
+                <!-- empty on purpose -->
+                {% endif %}
               </td>
-
 
 
             </tr>
@@ -136,635 +149,674 @@
         observations!</em>
       {% endif %}
     </div>
-
   </div>
 
-</div> <!-- end main page info -->
+
+  <script>
+    document.addEventListener('click', function (ev) {
+      const btn = ev.target.closest('.add-entry');
+      if (!btn) return;
+
+      const mNum = String(btn.dataset.mNumber || '').trim();
+      const modalEl = document.getElementById('uploadModal');
+      const select = modalEl.querySelector('select[name="messier_id"]');
+
+      // Preselect the option whose text starts with "<m_number> —"
+      if (select) {
+        for (const opt of select.options) {
+          if (opt.textContent.trim().startsWith(mNum + ' —')) {
+            select.value = opt.value;
+            break;
+          }
+        }
+      }
+
+      // Clear inputs
+      modalEl.querySelector('input[name="observed_date"]').value = '';
+      modalEl.querySelector('input[name="image"]').value = '';
+      modalEl.querySelector('textarea[name="journal_text"]').value = '';
+
+      // Show modal
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+  </script>
 
 
-<!-- ENHANCEMENT THREE ---- EDIT MODAL -->
-<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="background:#1a1a1a; color:#e4b1d9; border:2px solid #8b537f;">
-      <div class="modal-header">
-        <h5 class="modal-title">Edit Journal Entry</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <form method="POST" action="{{ url_for('journal_edit') }}" enctype="multipart/form-data">
-        <div class="modal-body">
-          <input type="hidden" name="entry_id" id="editEntryId">
-          <div class="mb-3">
-            <label class="form-label">Observation Date*</label>
-            <input type="date" class="form-control" name="observed_date" id="editObsDate" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Replace Image (optional)</label>
-            <input class="form-control" type="file" name="image" accept=".jpg,.jpeg,.png,.webp">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Notes</label>
-            <textarea class="form-control" name="journal_text" id="editNotes" rows="4"></textarea>
-          </div>
+
+  <!-- ENHANCEMENT THREE ---- EDIT MODAL -->
+  <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="background:#1a1a1a; color:#e4b1d9; border:2px solid #8b537f;">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Journal Entry</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Update</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-<!-- click hLISTENER for editing button  -->
-<script>
-  document.addEventListener('click', function (ev) {
-    const btn = ev.target.closest('.entry-edit');
-    if (!btn) return;
-
-    document.getElementById('editEntryId').value = btn.dataset.entryId || '';
-    document.getElementById('editObsDate').value = (btn.dataset.obs || '').slice(0, 10);
-    document.getElementById('editNotes').value = btn.dataset.journal || '';
-
-    new bootstrap.Modal(document.getElementById('editModal')).show();
-  });
-</script>
-
-
-<!-- ENHANCEMENT THREE DELETE MODAL -->
-<div class="modal fade" id="confirmEntryDeleteModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border:5px solid #e47474;">
-      <div class="modal-header">
-        <h5 class="modal-title w-100 text-center fw-bold text-dark">
-          <i class="bi bi-trash3 text-danger"></i>
-          Delete Journal Entry
-          <i class="bi bi-trash3 text-danger"></i>
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <form method="POST" action="{{ url_for('journal_delete') }}">
-        <div class="modal-body">
-          <p class="text-dark text-center mb-3">
-            This will permanently remove <span id="delObjectLabel" class="fw-bold"></span> from your journal and
-            progress.
-          </p>
-          <input type="hidden" name="entry_id" id="delEntryId">
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary text-white" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-danger text-white fw-bold">DELETE</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-<!-- LISTENER FOR BUTTON CLICK -->
-<script>
-  document.addEventListener('click', function (ev) {
-    const btn = ev.target.closest('.delete-entry');
-    if (!btn) return;
-
-    document.getElementById('delEntryId').value = btn.dataset.entryId || '';
-    document.getElementById('delObjectLabel').textContent = btn.dataset.object || 'this entry';
-
-    new bootstrap.Modal(document.getElementById('confirmEntryDeleteModal')).show();
-  });
-</script>
-
-
-
-
-
-<!-- modal for journal entry pop-up ********************************************************** -->
-<div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="background-color:#1a1a1a; color:#e4b1d9; border:2px solid #8b537f;">
-      <div class="modal-header">
-        <h5 class="modal-title">Messier Object Entry</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form method="POST" action="{{ url_for('journal_new') }}" enctype="multipart/form-data">
-          <div class="mb-3">
-            <!-- REQUIRED - select M# -->
-            <label class="form-label">Messier Object*</label>
-            <select class="form-select" name="messier_id" required>
-              {% for m in objects %}
-              <option value="{{ m.id }}">{{ m.m_number }} — {{ m.common_name }}</option>
-              {% endfor %}
-            </select>
+        <form method="POST" action="{{ url_for('journal_edit') }}" enctype="multipart/form-data">
+          <div class="modal-body">
+            <input type="hidden" name="entry_id" id="editEntryId">
+            <div class="mb-3">
+              <label class="form-label">Observation Date*</label>
+              <input type="date" class="form-control" name="observed_date" id="editObsDate" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Replace Image (optional)</label>
+              <input class="form-control" type="file" name="image" accept=".jpg,.jpeg,.png,.webp">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" name="journal_text" id="editNotes" rows="4"></textarea>
+            </div>
           </div>
-          <!-- REQUIRED - get date -->
-          <div class="mb-3">
-            <label class="form-label">Observation Date*</label>
-            <input type="date" class="form-control" name="observed_date" required>
-          </div>
-          <!-- REQUIRED - get image -->
-          <div class="mb-3">
-            <label class="form-label">Image (.jpg/.png/.webp)*</label>
-            <input class="form-control" type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required>
-          </div>
-          <!-- OPTIONAL - user notes -->
-          <div class="mb-3">
-            <label class="form-label">Notes (equipment, events, etc.)</label>
-            <textarea class="form-control" name="journal_text" rows="4"
-              placeholder="200mm refractor, Canon EOS R, 45s exp, clear skies, half-moon"></textarea>
-          </div>
-
-          <div class="d-flex justify-content-end gap-2">
+          <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="submit" class="btn btn-primary">Update</button>
           </div>
         </form>
       </div>
     </div>
   </div>
-</div>
+  <!-- click hLISTENER for editing button  -->
+  <script>
+    document.addEventListener('click', function (ev) {
+      const btn = ev.target.closest('.entry-edit');
+      if (!btn) return;
 
-<!-- add modal for **** USER MENU **** for logging out and additonal functionality in future -->
-<div class="position-fixed top-0 end-0 p-3" style="z-index: 2;">
-  <div class="dropdown text-end">
-    <button id="userMenuBtn" class="btn btn-sm dropdown-toggle d-flex align-items-center gap-2 border-0"
-      style="color:#ffffff; background:transparent; box-shadow:none; font-weight:600;"
-      onmouseenter="this.style.color='#b2a4ff'" onmouseleave="this.style.color='#ffffff'" data-bs-toggle="dropdown"
-      aria-expanded="false">
-      <i class="bi bi-person-circle fs-2"></i>
-      <span class="d-none d-md-inline">{{ (user.user_name)|default('User', true) }}</span>
-    </button>
-    <ul class="dropdown-menu btn-ghost-pink  dropdown-menu-end dropdown-menu-dark" aria-labelledby="userMenuBtn">
-      <li>
-        <!-- passes the route 'logout' -->
-        <a class="dropdown-item" href="{{ url_for('logout') }}">
-          <!-- text to let user know to click here to logout -->
-          <i class=""></i>Logout
-        </a>
-        <!-- Right to Erasure optoin -->
-        <button class="dropdown-item text-pink" type="button" data-bs-toggle="modal"
-          data-bs-target="#confirmAcctDeleteModal">
-          <i class="bi"></i>Delete Account
-        </button>
-      </li>
-    </ul>
+      document.getElementById('editEntryId').value = btn.dataset.entryId || '';
+      document.getElementById('editObsDate').value = (btn.dataset.obs || '').slice(0, 10);
+      document.getElementById('editNotes').value = btn.dataset.journal || '';
+
+      new bootstrap.Modal(document.getElementById('editModal')).show();
+    });
+  </script>
+
+
+  <!-- ENHANCEMENT THREE DELETE MODAL -->
+  <div class="modal fade" id="confirmEntryDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border:5px solid #e47474;">
+        <div class="modal-header">
+          <h5 class="modal-title w-100 text-center fw-bold text-dark">
+            <i class="bi bi-trash3 text-danger"></i>
+            Delete Journal Entry
+            <i class="bi bi-trash3 text-danger"></i>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <form method="POST" action="{{ url_for('journal_delete') }}">
+          <div class="modal-body">
+            <p class="text-dark text-center mb-3">
+              This will permanently remove <span id="delObjectLabel" class="fw-bold"></span> from your journal and
+              progress.
+            </p>
+            <input type="hidden" name="entry_id" id="delEntryId">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary text-white" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger text-white fw-bold">DELETE</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
-</div>
+  <!-- LISTENER FOR BUTTON CLICK -->
+  <script>
+    document.addEventListener('click', function (ev) {
+      const btn = ev.target.closest('.delete-entry');
+      if (!btn) return;
+
+      document.getElementById('delEntryId').value = btn.dataset.entryId || '';
+      document.getElementById('delObjectLabel').textContent = btn.dataset.object || 'this entry';
+
+      new bootstrap.Modal(document.getElementById('confirmEntryDeleteModal')).show();
+    });
+  </script>
 
 
-<!-- Journal Entry Overlay Button -->
-<div class="position-fixed bottom-0 end-0 p-1" style="z-index: 2;">
-  <div class="dropdown text-end">
-    <button type="button" class="btn fab-add"
-      style="color:#ffffff; background:transparent; box-shadow:none; font-weight:600;"
-      onmouseenter="this.style.color='#b2a4ff'" onmouseleave="this.style.color='#ffffff'" aria-label="Add journal entry"
-      data-bs-toggle="modal" data-bs-target="#uploadModal">
-      <i class="bi bi-journal-plus fs-1"></i>
-    </button>
+
+
+
+  <!-- modal for journal entry pop-up ********************************************************** -->
+  <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="background-color:#1a1a1a; color:#e4b1d9; border:2px solid #8b537f;">
+        <div class="modal-header">
+          <h5 class="modal-title">Messier Object Entry</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form method="POST" action="{{ url_for('journal_new') }}" enctype="multipart/form-data">
+            <div class="mb-3">
+              <!-- REQUIRED - select M# -->
+              <label class="form-label">Messier Object*</label>
+              <select class="form-select" name="messier_id" required>
+                {% for m in objects %}
+                <option value="{{ m.id }}">{{ m.m_number }} — {{ m.common_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <!-- REQUIRED - get date -->
+            <div class="mb-3">
+              <label class="form-label">Observation Date*</label>
+              <input type="date" class="form-control" name="observed_date" required>
+            </div>
+            <!-- REQUIRED - get image -->
+            <div class="mb-3">
+              <label class="form-label">Image (.jpg/.png/.webp)*</label>
+              <input class="form-control" type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required>
+            </div>
+            <!-- OPTIONAL - user notes -->
+            <div class="mb-3">
+              <label class="form-label">Notes (equipment, events, etc.)</label>
+              <textarea class="form-control" name="journal_text" rows="4"
+                placeholder="200mm refractor, Canon EOS R, 45s exp, clear skies, half-moon"></textarea>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
-<!-- </div> -->
+
+  <!-- add modal for **** USER MENU **** for logging out and additonal functionality in future -->
+  <div class="position-fixed top-0 end-0 p-3" style="z-index: 2;">
+    <div class="dropdown text-end">
+      <button id="userMenuBtn" class="btn btn-sm dropdown-toggle d-flex align-items-center gap-2 border-0"
+        style="color:#ffffff; background:transparent; box-shadow:none; font-weight:600;"
+        onmouseenter="this.style.color='#b2a4ff'" onmouseleave="this.style.color='#ffffff'" data-bs-toggle="dropdown"
+        aria-expanded="false">
+        <i class="bi bi-person-circle fs-2"></i>
+        <span class="d-none d-md-inline">{{ (user.user_name)|default('User', true) }}</span>
+      </button>
+      <ul class="dropdown-menu btn-ghost-pink  dropdown-menu-end dropdown-menu-dark" aria-labelledby="userMenuBtn">
+        <li>
+          <!-- passes the route 'logout' -->
+          <a class="dropdown-item" href="{{ url_for('logout') }}">
+            <!-- text to let user know to click here to logout -->
+            <i class=""></i>Logout
+          </a>
+          <!-- Right to Erasure optoin -->
+          <button class="dropdown-item text-pink" type="button" data-bs-toggle="modal"
+            data-bs-target="#confirmAcctDeleteModal">
+            <i class="bi"></i>Delete Account
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
 
 
-<!-- Highcharts PROGRESS BAR  -->
-<!-- get top 3 remaining objects for user from capture_next query -->
-<script>
-  const captureNext = JSON.parse('{{ capture_next | tojson | safe }}');
-</script>
-
-<!-- add icons for object type to tooltip list for easy understanding -->
-<script>
-  function iconForType(ot) {
-    if (ot.includes('Galaxy')) return '🌀';
-    if (ot.includes('Nebula')) return '🌌';
-    if (ot.includes('Star Cluster')) return '✨';
-    return '';
-  }
-</script>
+  <!-- Journal Entry Overlay Button -->
+  <div class="position-fixed bottom-0 end-0 p-1" style="z-index: 2;">
+    <div class="dropdown text-end">
+      <button type="button" class="btn fab-add"
+        style="color:#ffffff; background:transparent; box-shadow:none; font-weight:600;"
+        onmouseenter="this.style.color='#b2a4ff'" onmouseleave="this.style.color='#ffffff'"
+        aria-label="Add journal entry" data-bs-toggle="modal" data-bs-target="#uploadModal">
+        <i class="bi bi-journal-plus fs-1"></i>
+      </button>
+    </div>
+  </div>
+  <!-- </div> -->
 
 
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    var collected = Number('{{ user.progress.total|int }}'); // wrapping in Number() to avoid parser error
-    var catalog = 110;
-    var remaining = Math.max(catalog - collected, 0);
-    var pct = Math.round((collected / catalog) * 1000) / 10;
+  <!-- Highcharts PROGRESS BAR  -->
+  <!-- get top 3 remaining objects for user from capture_next query -->
+  <script>
+    const captureNext = JSON.parse('{{ capture_next | tojson | safe }}');
+  </script>
 
-    Highcharts.chart('hc-total-progress', { //************ PROGRESS BAR
-      chart: {
-        type: 'bar',
-        backgroundColor: 'transparent',
-        height: 46,
-        spacing: [0, 0, 0, 0]
-      },
+  <!-- add icons for object type to tooltip list for easy understanding -->
+  <script>
+    function iconForType(ot) {
+      if (ot.includes('Galaxy')) return '🌀';
+      if (ot.includes('Nebula')) return '🌌';
+      if (ot.includes('Star Cluster')) return '✨';
+      return '';
+    }
+  </script>
 
-      title: { text: null },
-      xAxis: { categories: ['Progress'], visible: false },
-      yAxis: { min: 0, max: catalog, title: { text: null }, gridLineWidth: 0, labels: { enabled: false } },
-      legend: { enabled: false },
-      // tooltip: { enabled: false }, pre-enh2
-      // ENHANCEMENT 2: implement a rarity score and use it to show the top remaining items 
-      tooltip: {
-        useHTML: true,
-        outside: true, // render outside chart to avoid any clipping
-        backgroundColor: 'rgba(30,20,20,0.90)',
-        borderColor: '#6b507c',
-        style: { color: '#ffffff', fontSize: '16px' },
-        formatter: function () {
-          const esc = s => String(s ?? '')
-            // helps format the data in the pop-up so its presented cleanly
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
-          // if there are no records in the capture_next list then send a 'congrats!' msg
-          if (!Array.isArray(captureNext) || captureNext.length === 0) {
-            return '<b>Congradulations!!!</b><br><span style="opacity:.8">You have completed the Messier Catalogue and captured all 110 objects!.</span>';
-          }
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var collected = Number('{{ user.progress.total|int }}'); // wrapping in Number() to avoid parser error
+      var catalog = 110;
+      var remaining = Math.max(catalog - collected, 0);
+      var pct = Math.round((collected / catalog) * 1000) / 10;
 
-          // else show all rows in the capture_next list in the tooltip
-          const rows = captureNext.map((d, i) =>
-            `<div><span style="opacity:.7"></span> ${iconForType(d.object_type)} M${esc(d.object)} : ${esc(d.rarity_pct)}%</div>`
-          ).join('');
+      Highcharts.chart('hc-total-progress', { //************ PROGRESS BAR
+        chart: {
+          type: 'bar',
+          backgroundColor: 'transparent',
+          height: 46,
+          spacing: [0, 0, 0, 0]
+        },
 
-          return `<div style="min-width:260px">
+        title: { text: null },
+        xAxis: { categories: ['Progress'], visible: false },
+        yAxis: { min: 0, max: catalog, title: { text: null }, gridLineWidth: 0, labels: { enabled: false } },
+        legend: { enabled: false },
+        // tooltip: { enabled: false }, pre-enh2
+        // ENHANCEMENT 2: implement a rarity score and use it to show the top remaining items 
+        tooltip: {
+          useHTML: true,
+          outside: true, // render outside chart to avoid any clipping
+          backgroundColor: 'rgba(30,20,20,0.90)',
+          borderColor: '#6b507c',
+          style: { color: '#ffffff', fontSize: '16px' },
+          formatter: function () {
+            const esc = s => String(s ?? '')
+              // helps format the data in the pop-up so its presented cleanly
+              .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+            // if there are no records in the capture_next list then send a 'congrats!' msg
+            if (!Array.isArray(captureNext) || captureNext.length === 0) {
+              return '<b>Congradulations!!!</b><br><span style="opacity:.8">You have completed the Messier Catalogue and captured all 110 objects!.</span>';
+            }
+
+            // else show all rows in the capture_next list in the tooltip
+            const rows = captureNext.map((d, i) =>
+              `<div><span style="opacity:.7"></span> ${iconForType(d.object_type)} M${esc(d.object)} : ${esc(d.rarity_pct)}%</div>`
+            ).join('');
+
+            return `<div style="min-width:260px">
               <div style="font-weight:bold;margin-bottom:5px">Top 3 Remaining Objects</div>
               ${rows}
               <div style="opacity:.7;font-size:12px;margin-top:6px">% = users who have logged this object</div>
             </div>`;
-        }
-      },
-
-
-      plotOptions: {
-        series: {
-          stacking: 'normal',
-          borderWidth: 0,
-          pointPadding: 0,
-          groupPadding: 0,
-          states: {
-            inactive: { opacity: 1 },   // stop dimming other sections
-            hover: { enabled: true }
-          }
-        }
-      },
-      series: [
-        {
-          name: 'Remaining',
-          color: 'rgba(139,95,191,0.15)',
-          enableMouseTracking: true,
-          data: [{ y: remaining }],
-          dataLabels: {
-            // if less than 20 objects collected, show the label centered on the track -  easier to read
-            enabled: collected < 20,
-            inside: true,
-            formatter: function () { return collected + ' / ' + catalog + ' (' + pct + '%)'; },
-            style: { textOutline: 'none', fontWeight: 'bold', color: '#cbb0d6', fontSize: '16px' }
           }
         },
-        {
-          name: 'Completed',
-          color: '#238b98',
-          enableMouseTracking: true,
-          data: [{ y: collected, className: 'hc-glow' }],
-          dataLabels: {
-            enabled: collected > 19,
-            inside: true,
-            formatter: function () { return collected + ' / ' + catalog + ' (' + pct + '%)'; },
-            style: { textOutline: 'none', fontWeight: 'bold', color: '#ffffff', fontSize: '16px' }
+
+
+        plotOptions: {
+          series: {
+            stacking: 'normal',
+            borderWidth: 0,
+            pointPadding: 0,
+            groupPadding: 0,
+            states: {
+              inactive: { opacity: 1 },   // stop dimming other sections
+              hover: { enabled: true }
+            }
           }
-        }
-      ],
-      credits: { enabled: false }
+        },
+        series: [
+          {
+            name: 'Remaining',
+            color: 'rgba(139,95,191,0.15)',
+            enableMouseTracking: true,
+            data: [{ y: remaining }],
+            dataLabels: {
+              // if less than 20 objects collected, show the label centered on the track -  easier to read
+              enabled: collected < 20,
+              inside: true,
+              formatter: function () { return collected + ' / ' + catalog + ' (' + pct + '%)'; },
+              style: { textOutline: 'none', fontWeight: 'bold', color: '#cbb0d6', fontSize: '16px' }
+            }
+          },
+          {
+            name: 'Completed',
+            color: '#238b98',
+            enableMouseTracking: true,
+            data: [{ y: collected, className: 'hc-glow' }],
+            dataLabels: {
+              enabled: collected > 19,
+              inside: true,
+              formatter: function () { return collected + ' / ' + catalog + ' (' + pct + '%)'; },
+              style: { textOutline: 'none', fontWeight: 'bold', color: '#ffffff', fontSize: '16px' }
+            }
+          }
+        ],
+        credits: { enabled: false }
+      });
+
+
     });
+  </script>
 
+  <!-- Highcharts DONUT CHARTS-->
+  <!-- Enhancement 2 addtions of top 3 by rarity score as tooltips on the donut charts as well  -->
+  <script>
+    const captureNextGalaxy = JSON.parse('{{ capture_next_galaxy | tojson | safe }}');
+    const captureNextNebula = JSON.parse('{{ capture_next_nebula | tojson | safe }}');
+    const captureNextStar = JSON.parse('{{ capture_next_star | tojson | safe }}');
+  </script>
 
-  });
-</script>
+  <script>
+    (function () {
+      // User progress (with safe fallbacks)
+      var galaxiesDone = Number('{{ (user.progress.galaxies |default (0, true))| int}}');
+      var nebulaeDone = Number('{{ (user.progress.nebulae |default (user.progress.nebulea, true) |default (0, true))| int }}');
+      var clustersDone = Number('{{ (user.progress.star_clusters |default (0, true))| int }}');
 
-<!-- Highcharts DONUT CHARTS-->
-<!-- Enhancement 2 addtions of top 3 by rarity score as tooltips on the donut charts as well  -->
-<script>
-  const captureNextGalaxy = JSON.parse('{{ capture_next_galaxy | tojson | safe }}');
-  const captureNextNebula = JSON.parse('{{ capture_next_nebula | tojson | safe }}');
-  const captureNextStar = JSON.parse('{{ capture_next_star | tojson | safe }}');
-</script>
+      // Donut Chart KPIs
+      var totals = JSON.parse('{{ catalog_totals | tojson | safe}}');
+      var totalGalaxies = (totals && totals["Galaxy"]) || 0;
+      var totalNebulae = (totals && totals["Nebula"]) || 0;
+      var totalClusters = (totals && totals["Star Cluster"]) || 0;
 
-<script>
-  (function () {
-    // User progress (with safe fallbacks)
-    var galaxiesDone = Number('{{ (user.progress.galaxies |default (0, true))| int}}');
-    var nebulaeDone = Number('{{ (user.progress.nebulae |default (user.progress.nebulea, true) |default (0, true))| int }}');
-    var clustersDone = Number('{{ (user.progress.star_clusters |default (0, true))| int }}');
+      function donut(container, completed, total, label, tips) {  //******************* DONUT CHARTS
+        completed = Math.max(0, Math.min(completed, total));
+        var remaining = Math.max(total - completed, 0);
 
-    // Donut Chart KPIs
-    var totals = JSON.parse('{{ catalog_totals | tojson | safe}}');
-    var totalGalaxies = (totals && totals["Galaxy"]) || 0;
-    var totalNebulae = (totals && totals["Nebula"]) || 0;
-    var totalClusters = (totals && totals["Star Cluster"]) || 0;
+        Highcharts.chart(container, {
+          chart: {
+            type: 'pie',
+            backgroundColor: 'transparent',
+            spacing: [-10, -10, -10, 0],
+            events: {
+              render: function () {
+                const chart = this;
+                const width = chart.plotWidth;
+                const height = chart.plotHeight;
+                const centerX = chart.plotLeft + width / 2;
+                const centerY = chart.plotTop + height / 2;
 
-    function donut(container, completed, total, label, tips) {  //******************* DONUT CHARTS
-      completed = Math.max(0, Math.min(completed, total));
-      var remaining = Math.max(total - completed, 0);
+                //  remove the second KPI that overlaps (only seen when window is resized)
+                if (chart.customCenterLabel) {
+                  chart.customCenterLabel.destroy();
+                }
 
-      Highcharts.chart(container, {
-        chart: {
-          type: 'pie',
-          backgroundColor: 'transparent',
-          spacing: [-10, -10, -10, 0],
-          events: {
-            render: function () {
-              const chart = this;
-              const width = chart.plotWidth;
-              const height = chart.plotHeight;
-              const centerX = chart.plotLeft + width / 2;
-              const centerY = chart.plotTop + height / 2;
-
-              //  remove the second KPI that overlaps (only seen when window is resized)
-              if (chart.customCenterLabel) {
-                chart.customCenterLabel.destroy();
+                // Add KPI text in the donut center
+                chart.customCenterLabel = chart.renderer.text(
+                  completed + ' / ' + total,
+                  centerX,
+                  centerY
+                )
+                  .attr({
+                    align: 'center'
+                  })
+                  .css({
+                    color: '#f4f2f5',
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    fontFamily: 'Rajdhani, sans-serif'
+                  })
+                  .add();
               }
-
-              // Add KPI text in the donut center
-              chart.customCenterLabel = chart.renderer.text(
-                completed + ' / ' + total,
-                centerX,
-                centerY
-              )
-                .attr({
-                  align: 'center'
-                })
-                .css({
-                  color: '#f4f2f5',
-                  fontSize: '20px',
-                  fontWeight: 'bold',
-                  fontFamily: 'Rajdhani, sans-serif'
-                })
-                .add();
             }
-          }
-        },
-        title: {  //  donut titles
-          text: label,
-          align: 'center',
-          style: {
-            color: '#f4f2f5', fontSize: '30px',
-            fontFamily: 'Rajdhani, sans-serif'
           },
-          y: 30
-        },
-        // Enhancement 2: Rarity/Popularity Score added in tooltip
-        tooltip: {
-          useHTML: true,
-          outside: true,
-          backgroundColor: 'rgba(30,20,20,0.90)',
-          borderColor: '#6b507c',
-          style: { color: '#f4f2f5', fontSize: '16px' },
-          followPointer: false,
-          positioner: function (labelWidth, labelHeight) {
-            const c = this.chart;
-            const x = c.plotLeft + c.plotWidth - labelWidth + (labelWidth / 2);
-            const y = c.plotTop + 10;
-            return { x, y };
+          title: {  //  donut titles
+            text: label,
+            align: 'center',
+            style: {
+              color: '#f4f2f5', fontSize: '30px',
+              fontFamily: 'Rajdhani, sans-serif'
+            },
+            y: 30
           },
-          formatter: function () {
-            const esc = s => String(s ?? '')
-              .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+          // Enhancement 2: Rarity/Popularity Score added in tooltip
+          tooltip: {
+            useHTML: true,
+            outside: true,
+            backgroundColor: 'rgba(30,20,20,0.90)',
+            borderColor: '#6b507c',
+            style: { color: '#f4f2f5', fontSize: '16px' },
+            followPointer: false,
+            positioner: function (labelWidth, labelHeight) {
+              const c = this.chart;
+              const x = c.plotLeft + c.plotWidth - labelWidth + (labelWidth / 2);
+              const y = c.plotTop + 10;
+              return { x, y };
+            },
+            formatter: function () {
+              const esc = s => String(s ?? '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
-            if (!Array.isArray(tips) || tips.length === 0) {
-              return `<b>Congrats!!!</b><br><span style="opacity:.8">You have captured all ${esc(label)}!</span>`;
-            }
-            const rows = tips.map((d, i) =>
-              `<div><span style="opacity:.7">${iconForType(d.object_type)}</span> M${esc(d.object)}: ${esc(d.rarity_pct)}%</div>`
-            ).join('');
-            return `<div style="min-width:220px">
+              if (!Array.isArray(tips) || tips.length === 0) {
+                return `<b>Congrats!!!</b><br><span style="opacity:.8">You have captured all ${esc(label)}!</span>`;
+              }
+              const rows = tips.map((d, i) =>
+                `<div><span style="opacity:.7">${iconForType(d.object_type)}</span> M${esc(d.object)}: ${esc(d.rarity_pct)}%</div>`
+              ).join('');
+              return `<div style="min-width:220px">
                     <div style="font-weight:bold;margin-bottom:4px">Top 3 Remaining ${esc(label)}</div>
                     ${rows}
                     <div style="opacity:.7;font-size:12px;margin-top:6px">% = users who have logged this object</div>
                   </div>`;
-          }
-        },
-        legend: { enabled: false },
-        credits: { enabled: false },
-        plotOptions: {
-          pie: {
-            size: '100%',
-            innerSize: '70%',
-            borderWidth: 0,
-            dataLabels: { enabled: false }, // omit lables, have above KPI
-            states: { inactive: { opacity: 1 } }
-          }
-        },
-        series: [{
-          data: [
-            { name: 'Completed', y: completed, color: '#2db1c1' },
-            { name: 'Remaining', y: remaining, color: 'rgba(139,95,191,0.15)' }
-          ]
-        }]
-      });
+            }
+          },
+          legend: { enabled: false },
+          credits: { enabled: false },
+          plotOptions: {
+            pie: {
+              size: '100%',
+              innerSize: '70%',
+              borderWidth: 0,
+              dataLabels: { enabled: false }, // omit lables, have above KPI
+              states: { inactive: { opacity: 1 } }
+            }
+          },
+          series: [{
+            data: [
+              { name: 'Completed', y: completed, color: '#2db1c1' },
+              { name: 'Remaining', y: remaining, color: 'rgba(139,95,191,0.15)' }
+            ]
+          }]
+        });
 
+      }
+
+
+      // TESTING
+      donut('donut-galaxies', galaxiesDone, totalGalaxies, 'Galaxies', captureNextGalaxy);
+      donut('donut-nebulae', nebulaeDone, totalNebulae, 'Nebulae', captureNextNebula);
+      donut('donut-clusters', clustersDone, totalClusters, 'Star Clusters', captureNextStar);
+
+    })();
+  </script>
+
+
+  <!-- MODAL: OBJECT DETAILS ------------------------------------------------------------------- -->
+  <script>
+    const PLACEHOLDER_IMG = "{{ PLACEHOLDER }}"; // handles all three cases of image loads
+    // funciton to show the modal
+    function openObjectModal(d) {
+      const setText = (id, val) => document.getElementById(id).textContent = (val ?? '—');
+
+      document.getElementById('objectModalTitle').textContent = d.obj_title || '';
+
+
+      const imgEl = document.getElementById('objectImage');
+      imgEl.onerror = function () { this.onerror = null; this.src = PLACEHOLDER_IMG; };
+      imgEl.src = d.img || PLACEHOLDER_IMG;
+      imgEl.alt = d.obj_title || 'Messier object'; //test
+
+      setText('objectNotes', d.notes);
+      setText('objectConstellation', d.constellation);
+      setText('objectType', d.object_type);
+      setText('objectSubtype', d.object_subtype);
+      setText('objectRA', d.ra_hours);
+      setText('objectDec', d.dec_degrees);
+      setText('objectMag', d.magnitude);
+
+      // date: “Not Captured” in pinkish red when empty/None
+      const obsEl = document.getElementById('obsDate');
+      if (d.observation_date && d.observation_date !== 'Not Captured') {
+        obsEl.textContent = d.observation_date;
+      } else {
+        obsEl.innerHTML = '<span style="color:#ff6b9c;font-weight:600;">Not Captured</span>';
+      }
+
+      // Journal text may have newlines; it’s safely rendered as text
+      const j = document.getElementById('journalText');
+      j.textContent = d.journal_text || '';
+
+      new bootstrap.Modal(document.getElementById('objectModal')).show();
     }
 
 
-    // TESTING
-    donut('donut-galaxies', galaxiesDone, totalGalaxies, 'Galaxies', captureNextGalaxy);
-    donut('donut-nebulae', nebulaeDone, totalNebulae, 'Nebulae', captureNextNebula);
-    donut('donut-clusters', clustersDone, totalClusters, 'Star Clusters', captureNextStar);
 
-  })();
-</script>
+    // click handler for .view-object btns
+    document.addEventListener('click', function (ev) {
+      const btn = ev.target.closest('.view-object');
+      if (!btn) return;
 
+      const d = {
+        obj_title: btn.dataset.title,
+        img: btn.dataset.img,
+        notes: btn.dataset.notes,
+        constellation: btn.dataset.constellation,
+        object_type: btn.dataset.objectType,
+        object_subtype: btn.dataset.objectSubtype,
+        ra_hours: btn.dataset.ra,
+        dec_degrees: btn.dataset.dec,
+        magnitude: btn.dataset.mag,
+        observation_date: btn.dataset.obs,
+        journal_text: btn.dataset.journal
+      };
 
-<!-- pop-up for seeing the object data and journal entry in more detail -->
-<script>
-  // funciton to show the modal
-  function openObjectModal(d) {
-    const setText = (id, val) => document.getElementById(id).textContent = (val ?? '—');
+      openObjectModal(d);
+    });
+  </script>
 
-    document.getElementById('objectModalTitle').textContent = d.obj_title || '';
-
-
-    const imgEl = document.getElementById('objectImage');
-    imgEl.src = d.img || '';
-    imgEl.alt = d.obj_title || ''; //test
-
-    setText('objectNotes', d.notes);
-    setText('objectConstellation', d.constellation);
-    setText('objectType', d.object_type);
-    setText('objectSubtype', d.object_subtype);
-    setText('objectRA', d.ra_hours);
-    setText('objectDec', d.dec_degrees);
-    setText('objectMag', d.magnitude);
-    setText('obsDate', d.observation_date);
-
-    // Journal text may have newlines; it’s safely rendered as text
-    const j = document.getElementById('journalText');
-    j.textContent = d.journal_text || '';
-
-    new bootstrap.Modal(document.getElementById('objectModal')).show();
-  }
-
-  // click handler for .view-object btns
-  document.addEventListener('click', function (ev) {
-    const btn = ev.target.closest('.view-object');
-    if (!btn) return;
-
-    const d = {
-      obj_title: btn.dataset.title,
-      img: btn.dataset.img,
-      notes: btn.dataset.notes,
-      constellation: btn.dataset.constellation,
-      object_type: btn.dataset.objectType,
-      object_subtype: btn.dataset.objectSubtype,
-      ra_hours: btn.dataset.ra,
-      dec_degrees: btn.dataset.dec,
-      magnitude: btn.dataset.mag,
-      observation_date: btn.dataset.obs,
-      journal_text: btn.dataset.journal
-    };
-
-    openObjectModal(d);
-  });
-</script>
-
-<!-- Object Detail Modal -->
-<div class="modal fade" id="objectModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-xl">
-    <div class="modal-content" style="background:#1d1b24; color:#e5e7eb; border:2px solid #6b507c;">
-      <div class="modal-header" style="border-bottom:2px solid #a97fc4;">
-        <h3 class="modal-title" id="objectModalTitle"></h3>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <div class="modal-body">
-
-
-        <!-- Large image -->
-        <div class="mb-3 text-center">
-          <img id="objectImage" class="img-fluid rounded" alt="" style="max-height:60vh; object-fit:contain;">
+  <!-- Object Detail Modal -->
+  <div class="modal fade" id="objectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content" style="background:#1d1b24; color:#e5e7eb; border:2px solid #6b507c;">
+        <div class="modal-header" style="border-bottom:2px solid #a97fc4;">
+          <h3 class="modal-title" id="objectModalTitle"></h3>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
-        <!-- Fun facts ( notes from messier_objects.notes) -->
-        <div id="objectNotes" class="mb-3 text-center" style="color:#ffffff;"></div>
-
-        <!-- 3 rows x 2 columns (summary misc info tables) -->
-        <div class="mt-4 d-flex justify-content-center">
-          <div class="specs-2col">
-            <!-- LEFT column -->
-            <dl class="specs-list">
-              <dt>Constellation</dt>
-              <dd id="objectConstellation">—</dd>
-              <dt>Object</dt>
-              <dd id="objectType">—</dd>
-              <dt>Subtype</dt>
-              <dd id="objectSubtype">—</dd>
-            </dl>
-
-            <!-- RIGHT column -->
-            <dl class="specs-list">
-              <dt>RA (hrs)</dt>
-              <dd id="objectRA">—</dd>
-              <dt>Dec (°)</dt>
-              <dd id="objectDec">—</dd>
-              <dt>Magnitude</dt>
-              <dd id="objectMag">—</dd>
-            </dl>
-          </div>
-        </div>
-
-        <hr class="my-3" style="border-color:#6b507c; opacity:.5;">
-
-        <!-- User observation details -->
-        <div class="row g-3">
-          <div class="col-md-4">
-            <div class="">Observation Date:</div>
-            <div id="obsDate"></div>
-          </div>
-          <div class="col-md-8">
-            <div class="">Journal Notes:</div>
-            <div id="journalText" class="whitespace-prewrap"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-<!-- DELETE ACCOUNT MODAL ***********************************************************************************************************-->
-<!-- design inspiration: https://nicelydone.club/blog/delete-account-examples-inspiration#delete-account-design-examples-inspiration -->
-<div class="modal fade" id="confirmAcctDeleteModal" tabindex="-1" aria-hidden="true">
-
-
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border:5px solid #e47474;">
-      <!-- header -->
-      <div class="modal-header">
-        <h5 id="confirmDeleteTitle"
-          class="fs-1 modal-title w-100 text-center fw-bold d-flex justify-content-center align-items-center gap-4 text-dark">
-          <i class="bi bi-trash3 text-danger"></i>
-          Confirm Deletion
-          <i class="bi bi-trash3 text-danger"></i>
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <!-- body with form that sends to route-->
-      <form id="deleteAcctForm" method="POST" action="{{ url_for('account_delete') }}">
         <div class="modal-body">
-          <!-- ensure incorrect password msg displays -->
-          <div id="deleteError" class="alert alert-danger mb-3 {% if not del_error %}d-none{% endif %}" role="alert">
-            Incorrect password. Please try again.</div>
-          <p
-            class="modal-title w-100 border-0 text-center fw-bold d-flex justify-content-center align-items-center text-dark">
-            WARNING: This action is irreversible and will permanently remove all your account data.</p>
-          <p></p>
-          <!-- form to require password to continue and ensures the 'incorrect password' error displays  -->
-          <div class="mb-3">
-            <input type="password" class="form-control" id="deleteAcctPassword" name="delete_acct_password"
-              placeholder="Password Required" required {% if del_error %}autofocus{% endif %}>
+
+
+          <!-- Large image -->
+          <div class="mb-3 text-center">
+            <img id="objectImage" class="img-fluid rounded" alt="" style="max-height:60vh; object-fit:contain;">
+          </div>
+
+          <!-- Fun facts ( notes from messier_objects.notes) -->
+          <div id="objectNotes" class="mb-3 text-center" style="color:#ffffff;"></div>
+
+          <!-- 3 rows x 2 columns (summary misc info tables) -->
+          <div class="mt-4 d-flex justify-content-center">
+            <div class="specs-2col">
+              <!-- LEFT column -->
+              <dl class="specs-list">
+                <dt>Constellation</dt>
+                <dd id="objectConstellation">—</dd>
+                <dt>Object</dt>
+                <dd id="objectType">—</dd>
+                <dt>Subtype</dt>
+                <dd id="objectSubtype">—</dd>
+              </dl>
+
+              <!-- RIGHT column -->
+              <dl class="specs-list">
+                <dt>RA (hrs)</dt>
+                <dd id="objectRA">—</dd>
+                <dt>Dec (°)</dt>
+                <dd id="objectDec">—</dd>
+                <dt>Magnitude</dt>
+                <dd id="objectMag">—</dd>
+              </dl>
+            </div>
+          </div>
+
+          <hr class="my-3" style="border-color:#6b507c; opacity:.5;">
+
+          <!-- User observation details -->
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="">Observation Date:</div>
+              <div id="obsDate"></div>
+            </div>
+            <div class="col-md-8">
+              <div class="">Journal Notes:</div>
+              <div id="journalText" class="whitespace-prewrap"></div>
+            </div>
           </div>
         </div>
-
-        <!-- decision buttons -->
-        <div class="modal-footer">
-          <!-- cancel automatically returns back to dashboard -->
-          <button type="button" class="btn btn-secondary text-white" data-bs-dismiss="modal">Cancel</button>
-          <!-- links to function that performs data deletion...-->
-          <button type="submit" class="btn btn-danger text-white fw-bold" id="confirmDeleteBtn">
-            DELETE ACCOUNT
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
+
+
+  <!-- DELETE ACCOUNT MODAL ***********************************************************************************************************-->
+  <!-- design inspiration: https://nicelydone.club/blog/delete-account-examples-inspiration#delete-account-design-examples-inspiration -->
+  <div class="modal fade" id="confirmAcctDeleteModal" tabindex="-1" aria-hidden="true">
+
+
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border:5px solid #e47474;">
+        <!-- header -->
+        <div class="modal-header">
+          <h5 id="confirmDeleteTitle"
+            class="fs-1 modal-title w-100 text-center fw-bold d-flex justify-content-center align-items-center gap-4 text-dark">
+            <i class="bi bi-trash3 text-danger"></i>
+            Confirm Deletion
+            <i class="bi bi-trash3 text-danger"></i>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <!-- body with form that sends to route-->
+        <form id="deleteAcctForm" method="POST" action="{{ url_for('account_delete') }}">
+          <div class="modal-body">
+            <!-- ensure incorrect password msg displays -->
+            <div id="deleteError" class="alert alert-danger mb-3 {% if not del_error %}d-none{% endif %}" role="alert">
+              Incorrect password. Please try again.</div>
+            <p
+              class="modal-title w-100 border-0 text-center fw-bold d-flex justify-content-center align-items-center text-dark">
+              WARNING: This action is irreversible and will permanently remove all your account data.</p>
+            <p></p>
+            <!-- form to require password to continue and ensures the 'incorrect password' error displays  -->
+            <div class="mb-3">
+              <input type="password" class="form-control" id="deleteAcctPassword" name="delete_acct_password"
+                placeholder="Password Required" required {% if del_error %}autofocus{% endif %}>
+            </div>
+          </div>
+
+          <!-- decision buttons -->
+          <div class="modal-footer">
+            <!-- cancel automatically returns back to dashboard -->
+            <button type="button" class="btn btn-secondary text-white" data-bs-dismiss="modal">Cancel</button>
+            <!-- links to function that performs data deletion...-->
+            <button type="submit" class="btn btn-danger text-white fw-bold" id="confirmDeleteBtn">
+              DELETE ACCOUNT
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- script to help manage ui consistency after password error -->
+  <!-- ref: https://developer.mozilla.org/en-US/docs/Web/API/Document/DOMContentLoaded_event -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const hadError = '{{ "1" if request.args.get("del_error") else "0" }}' === '1';
+
+      if (hadError) {
+        const el = document.getElementById('confirmAcctDeleteModal');
+        const modal = new bootstrap.Modal(el, { backdrop: 'static', keyboard: true });
+        modal.show();
+
+        // sets the cursor back into the password field element for user convinience
+        el.addEventListener('shown.bs.modal', () => {
+          document.getElementById('deleteAcctPassword')?.focus();
+        });
+
+        // clears the remaining faded out backdrop when canceled so it returns to normal
+        el.addEventListener('hidden.bs.modal', () => {
+          document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+          document.body.classList.remove('modal-open');
+          document.body.style.removeProperty('overflow');
+          document.body.style.removeProperty('padding-right');
+        });
+      }
+    });
+  </script>
+
 </div>
-
-<!-- script to help manage ui consistency after password error -->
-<!-- ref: https://developer.mozilla.org/en-US/docs/Web/API/Document/DOMContentLoaded_event -->
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const hadError = '{{ "1" if request.args.get("del_error") else "0" }}' === '1';
-
-    if (hadError) {
-      const el = document.getElementById('confirmAcctDeleteModal');
-      const modal = new bootstrap.Modal(el, { backdrop: 'static', keyboard: true });
-      modal.show();
-
-      // sets the cursor back into the password field element for user convinience
-      el.addEventListener('shown.bs.modal', () => {
-        document.getElementById('deleteAcctPassword')?.focus();
-      });
-
-      // clears the remaining faded out backdrop when canceled so it returns to normal
-      el.addEventListener('hidden.bs.modal', () => {
-        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-        document.body.classList.remove('modal-open');
-        document.body.style.removeProperty('overflow');
-        document.body.style.removeProperty('padding-right');
-      });
-    }
-  });
-</script>
-
-
 
 {% endblock %}
