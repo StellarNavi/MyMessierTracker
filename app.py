@@ -78,7 +78,7 @@ def files(key):
 # helpers for keys (adding)
 def make_key(original_filename: str) -> str:
     ext = (Path(original_filename).suffix or "").lower()
-    return str(PurePosixPath(f"{uuid.uuid4().hex}{ext}"))  # e.g. 'a1b2c3.jpg'
+    return str(PurePosixPath(f"{uuid.uuid4().hex}{ext}")) 
 
 def save_to_uploads(file_storage, key: str) -> Path:
     dest = (UPLOAD_DIR / key)
@@ -123,7 +123,7 @@ def landing():
     # if they’re already logged in, send to the dashboard instead
     if current_user.is_authenticated:
         return redirect(url_for("dashboard"))
-    return render_template("login.html")
+    return render_template("landing.html")
 
 
 # DASHBOARD PAGE -----------------------------------------------------------------------------------
