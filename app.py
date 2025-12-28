@@ -1,71 +1,57 @@
-# initiallize main Flask app 
-
-#imports
+# initiallize main Flask app and related modules, database connection,
+# user session management, file upload handling, and core routes     
 from datetime import datetime
 from pathlib import Path, PurePosixPath
-
-# for img upload
 import mimetypes    
 import os
 import secrets
-
-# generate unique ids for img names
 import uuid         
 import psycopg2
 from dotenv import load_dotenv
-
-# core Flask app functionality for requests and responses
-from flask import (Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, abort)
-
-# password hash
+from flask import (Flask, render_template, request, redirect, url_for, flash, session,
+                   send_from_directory, abort)
 from flask_bcrypt import Bcrypt
-
-# authentication handling                         
-from flask_login import (LoginManager, UserMixin, login_user, logout_user, 
-                         login_required, current_user)
-
+from flask_login import (LoginManager, UserMixin, login_user, logout_user, login_required, 
+                         current_user)
 from werkzeug.utils import secure_filename
 from config import Config
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# get secret key for session cookies, security (prevents tampering) prior to loading
+# get secret key for session cookies, security (prevents tampering)
 app.config['SECRET_KEY'] = (
-    os.getenv('SECRET_KEY')             # from .env (currently how its used via 'flask run')
-    or app.config.get('SECRET_KEY')     # from config 
-    or secrets.token_hex(32)            # safeguard so app still runs
+    os.getenv('SECRET_KEY')             
+    or app.config.get('SECRET_KEY')     
+    or secrets.token_hex(32)            
 )
 
-# password encryption and login
+# bcrypt (password encryption)
 bcrypt = Bcrypt(app)                                          
 login_manager = LoginManager(app)       
 login_manager.login_view = 'login'      
 
 
-# for testing between dev and prod
+# for testing between dev and prod (local vs deployed server paths)
 DEPLOYED = os.getenv('DEPLOYED')
+# local env is set to false so it paths appropriately
 if DEPLOYED == 'TRUE':
     UPLOAD_DIR = Path("/var/user_uploads").resolve()
 else:
     UPLOAD_DIR = (Path(app.root_path).resolve().parent / "user_uploads").resolve()
-
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # for the image loads within the pop-up journal entry
 ALLOWED_EXT = {"jpg","jpeg","png","webp"}
 
-
-
-# establish postgres connection and pull from env variables 
-# (in gitignore for security best practice)
+# establish postgres connection (vars in env)
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = int(os.getenv("DB_PORT"))
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_PASS")
 
-# function to allow resolving files on server outside of project path
+# function to allow resolving files between paths
 @app.get("/files/<path:key>")
 def files(key):
     target = (UPLOAD_DIR / key).resolve()
@@ -118,7 +104,7 @@ class User(UserMixin):
 
 
 # LANDING PAGE
-@app.route("/landing")
+@app.route("/")
 def landing():
     # if they’re already logged in, send to the dashboard instead
     if current_user.is_authenticated:
@@ -129,7 +115,7 @@ def landing():
 # DASHBOARD PAGE -----------------------------------------------------------------------------------
 # loads the 'home' screen data for catalog totals and progress stats as well as user journal entries
 # like  messier object dropdown, object names, notes, etc
-@app.route("/")
+@app.route("/dashboard")
 @login_required
 def dashboard():
     user_id = str(current_user.id)
