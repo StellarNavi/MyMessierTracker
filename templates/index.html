@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block head %}
-<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highcharts@11/highcharts.js"></script>
 <style>
   th.sortable {
     position: relative;
@@ -36,27 +36,27 @@
 <div style="position: relative; " class="container mt-4">
 
   <!-- Prog bar title -->
-  <h4 class="m-0 w-100 text-center" , style="color:#f4f2f5; font-weight:bold; font-size: 40px;">Total Objects Captured
+  <h4 class="m-0 w-100 text-center" style="color:#f4f2f5; font-weight:bold; font-size: 40px;">Total Objects Captured
   </h4>
   <!-- Highcharts progress bar-->
-  <div id="hc-total-progress" style="color:#f4f2f5; height: 46px; margin: 12px 0;"></div>
+  <div id="hc-total-progress" style="color:#f4f2f5; height: 46px; margin: 12px 0; width: 100%; min-width: 100%;"></div>
 
   <!-- Highcharts Donuts (titles built in)-->
   <div class="row g-3 mt-2 mb-5">
     <div class="col-12 col-md-4">
-      <div id="donut-galaxies" style="height:220px;"></div>
+      <div id="donut-galaxies" style="height:220px; width: 100%; min-width: 100%;"></div>
     </div>
     <div class="col-12 col-md-4">
-      <div id="donut-nebulae" style="height:220px;"></div>
+      <div id="donut-nebulae" style="height:220px; width: 100%; min-width: 100%;"></div>
     </div>
     <div class="col-12 col-md-4">
-      <div id="donut-clusters" style="height:220px;"></div>
+      <div id="donut-clusters" style="height:220px; width: 100%; min-width: 100%;"></div>
     </div>
   </div>
 
   <!-- Journal section  - 8d9edb -->
 
-  <div class="card mt-4" style="background-color:#252c425d; border:2px solid #6b507c;">
+  <div class="card mt-4" style="background-color:#0e0d1a; border:2px solid #6b507c;">
     <div class="card-header position-relative d-flex justify-content-center align-items-center"
       style="background-color:#252c4200; border-bottom:2px solid #a97fc4;">
       <h4 class="m-0 w-100 text-center" , style="color:#f4f2f5; font-weight:bold; font-size: 40px;">
@@ -71,11 +71,16 @@
     <div class="card-body p-3" id="journal-list" style="color:#f7f7f7;">
       <!-- use Jinja2 to build out a dynamic table for user journal -->
       {% if entries and entries|length %}
+      <div class="mb-3">
+        <input id="journal-search" type="search" class="form-control journal-search-input"
+          placeholder="Search by number or type… (e.g. 31, Galaxy)">
+      </div>
       <div class="table-responsive">
         <table class="table-sm align-middle mb-0 w-100" style="background-color:transparent;">
           <thead>
             <tr>
               <!-- test column widths fit with resizing page -->
+              <th style="width:36px;" title="Quick-observe: check to mark as seen without a full entry">✓</th>
               <th style="width:90px;"> Image <i class="bi bi-box-arrow-up-right ms-2" aria-hidden="true"
                   style="font-size:0.85em; color:#999;"></i>
               </th>
@@ -94,7 +99,14 @@
           <tbody>
             {% for e in entries %}
             <!-- grey out rows where the object has not yet been captured -->
-            <tr class="{{ 'is-missing' if not e.date else '' }}">
+            {% set has_entry = e.id != "None" %}
+            {% set is_observed = has_entry and e.is_observed %}
+            <tr class="{{ 'is-missing' if not is_observed else '' }}">
+              <td class="text-center" style="vertical-align:middle;">
+                <input type="checkbox" class="quick-observe form-check-input" data-messier-id="{{ e.m_id }}"
+                  data-entry-id="{{ e.id }}" {% if is_observed %}checked{% endif %}
+                  title="{% if is_observed %}Click to uncheck (entry preserved){% else %}Mark as observed{% endif %}">
+              </td>
               <td>
                 <!-- if object has been capturedby user then use the users imge else use NASA's img else use placeholder -->
                 {% set img_src = (url_for('files', key=e.img) if (e.date and e.img)
@@ -119,10 +131,9 @@
               <td>
                 {% set rank = rare_ranks.get(e.id) %}
                 {% if e.date and rank %}
-                <!-- star colors by rarity rank -->
-                {% set color = '#ffd700' if rank == 1 else '#c0c0c0' if rank == 2 else '#cd7f32' %}
+                <!-- star colors by rarity rank: gold=1st, silver=2nd, bronze=3rd -->
                 <span title="Rare find! Only {{ e.rarity }}% of users have logged this object."
-                  style="color: {{ color }};">★</span>
+                  style="color: {{ '#ffd700' if rank == 1 else '#c0c0c0' if rank == 2 else '#cd7f32' }};">★</span>
                 {% endif %}
                 M{{ e.m_number }}
               </td>
@@ -228,6 +239,395 @@
         })();
       </script>
 
+      <script>
+        // Attach event listeners to initial buttons on page load
+        function attachInitialEventListeners() {
+          console.log('Attaching initial event listeners');
+
+          // Attach listeners to all existing edit buttons
+          document.querySelectorAll('.entry-edit').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              console.log('Initial edit button clicked:', this.dataset.entryId);
+              openEditModal(this.dataset.entryId, this.dataset.obs, this.dataset.journal);
+            });
+          });
+
+          // Attach listeners to all existing delete buttons
+          document.querySelectorAll('.delete-entry').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              console.log('Initial delete button clicked:', this.dataset.entryId);
+              openDeleteModal(this.dataset.entryId, this.dataset.object);
+            });
+          });
+
+          // Attach listeners to all existing add buttons
+          document.querySelectorAll('.add-entry').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              console.log('Initial add button clicked:', this.dataset.mNumber);
+              openAddModal(this.dataset.mNumber);
+            });
+          });
+        }
+
+        // Call this when the page loads
+        document.addEventListener('DOMContentLoaded', attachInitialEventListeners);
+
+        document.addEventListener('change', function (ev) {
+          const cb = ev.target.closest('.quick-observe');
+          if (!cb || cb.disabled) return;
+
+          const messierId = cb.dataset.messierId;
+          const newChecked = cb.checked; // state AFTER the click
+
+          fetch('/journal/toggle-observe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messier_id: messierId, checked: newChecked })
+          })
+            .then(r => r.json())
+            .then(data => {
+              const row = cb.closest('tr');
+              if (data.status === 'observed') {
+                cb.checked = true;
+                cb.dataset.entryId = data.entry_id;
+                cb.title = 'Click to uncheck (entry preserved)';
+                row.classList.remove('is-missing');
+                const today = new Date().toISOString().slice(0, 10);
+                if (row.children[6]) row.children[6].textContent = today;
+
+                // New entry: replace add button with edit + delete
+                updateRowButtons(row, data.entry_id, today, '');
+              } else if (data.status === 'unobserved') {
+                cb.checked = false;
+                cb.title = 'Mark as observed';
+                row.classList.add('is-missing');
+                // Do NOT clear buttons or entry id — the entry still exists in the DB
+              } else {
+                cb.checked = !newChecked; // revert on unexpected state
+              }
+
+              // Refresh charts after state change
+              refreshCharts();
+            })
+            .catch(() => { cb.checked = !newChecked; });
+        });
+
+        function updateRowButtons(row, entryId, obsDate, body) {
+          console.log('updateRowButtons called with:', { entryId, obsDate, body });
+          const editCell = row.children[7]; // Edit button cell
+          const deleteCell = row.children[8]; // Delete button cell
+
+          if (entryId && obsDate) {
+            console.log('Creating edit and delete buttons');
+            // Show edit button
+            editCell.innerHTML = `
+              <button type="button" class="btn btn-info btn-md entry-edit" title="Edit Record"
+                data-entry-id="${entryId}" data-obs="${obsDate}" data-journal="${body || ''}">
+                <i class="bi bi-pencil Large"></i>
+              </button>
+            `;
+
+            // Show delete button
+            deleteCell.innerHTML = `
+              <button type="button" class="btn btn-info btn-md delete-entry" title="Delete Record"
+                data-entry-id="${entryId}" data-object="M${row.children[2].textContent.trim()} — ${row.children[3].textContent.trim()}">
+                <i class="bi bi-trash Large"></i>
+              </button>
+            `;
+
+            // Re-attach event listeners to the new buttons
+            const editBtn = editCell.querySelector('.entry-edit');
+            const deleteBtn = deleteCell.querySelector('.delete-entry');
+
+            console.log('Edit button found:', !!editBtn);
+            console.log('Delete button found:', !!deleteBtn);
+
+            if (editBtn) {
+              editBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                console.log('Edit button clicked directly:', this.dataset.entryId);
+                openEditModal(this.dataset.entryId, this.dataset.obs, this.dataset.journal);
+              });
+              console.log('Edit button event listener attached');
+            }
+
+            if (deleteBtn) {
+              deleteBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                console.log('Delete button clicked directly:', this.dataset.entryId);
+                openDeleteModal(this.dataset.entryId, this.dataset.object);
+              });
+              console.log('Delete button event listener attached');
+            }
+          } else {
+            console.log('Creating add button');
+            // Show add button
+            const messierNum = row.children[2].textContent.replace('M', '').trim();
+            editCell.innerHTML = `
+              <button type="button" class="btn btn-primary btn-md add-entry" title="Add Entry"
+                data-m-number="${messierNum}">
+                <i class="bi bi-plus Large"></i>
+              </button>
+            `;
+
+            // Hide delete button
+            deleteCell.innerHTML = '';
+
+            // Re-attach event listener to the new add button
+            const addBtn = editCell.querySelector('.add-entry');
+            console.log('Add button found:', !!addBtn);
+
+            if (addBtn) {
+              addBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                console.log('Add button clicked directly:', this.dataset.mNumber);
+                openAddModal(this.dataset.mNumber);
+              });
+              console.log('Add button event listener attached');
+            }
+          }
+        }
+
+        function openEditModal(entryId, obsDate, journal) {
+          console.log('Opening edit modal for entry:', entryId);
+          // Close any existing modals first
+          const existingModals = document.querySelectorAll('.modal.show');
+          existingModals.forEach(modal => {
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+              bsModal.hide();
+            }
+          });
+
+          // Small delay to ensure modal cleanup
+          setTimeout(() => {
+            document.getElementById('editEntryId').value = entryId || '';
+            document.getElementById('editObsDate').value = (obsDate || '').slice(0, 10);
+            document.getElementById('editNotes').value = journal || '';
+
+            const modalEl = document.getElementById('editModal');
+            const bsModal = new bootstrap.Modal(modalEl, {
+              backdrop: 'static',
+              keyboard: true,
+              focus: true
+            });
+            bsModal.show();
+
+            // Ensure modal is focusable after opening
+            modalEl.addEventListener('shown.bs.modal', function() {
+              console.log('Edit modal shown, focusing first input');
+              const firstInput = modalEl.querySelector('input:not([type="hidden"])');
+              if (firstInput) {
+                firstInput.focus();
+                console.log('Focused input:', firstInput);
+              }
+            });
+
+            // Prevent modal from closing when clicking inside
+            modalEl.addEventListener('click', function(e) {
+              e.stopPropagation();
+            });
+          }, 200);
+        }
+
+        function openDeleteModal(entryId, object) {
+          console.log('Opening delete modal for entry:', entryId);
+          // Close any existing modals first
+          const existingModals = document.querySelectorAll('.modal.show');
+          existingModals.forEach(modal => {
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+              bsModal.hide();
+            }
+          });
+
+          // Small delay to ensure modal cleanup
+          setTimeout(() => {
+            document.getElementById('delEntryId').value = entryId || '';
+            document.getElementById('delObjectLabel').textContent = object || 'this entry';
+
+            const modalEl = document.getElementById('confirmEntryDeleteModal');
+            const bsModal = new bootstrap.Modal(modalEl, {
+              backdrop: 'static',
+              keyboard: true,
+              focus: true
+            });
+            bsModal.show();
+
+            // Ensure modal is focusable after opening
+            modalEl.addEventListener('shown.bs.modal', function() {
+              console.log('Delete modal shown, focusing first button');
+              const firstButton = modalEl.querySelector('button');
+              if (firstButton) {
+                firstButton.focus();
+                console.log('Focused button:', firstButton);
+              }
+            });
+
+            // Prevent modal from closing when clicking inside
+            modalEl.addEventListener('click', function(e) {
+              e.stopPropagation();
+            });
+          }, 200);
+        }
+
+        function openAddModal(mNumber) {
+          // Close any existing modals first
+          const existingModals = document.querySelectorAll('.modal.show');
+          existingModals.forEach(modal => {
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+              bsModal.hide();
+            }
+          });
+
+          // Small delay to ensure modal cleanup
+          setTimeout(() => {
+            const modalEl = document.getElementById('uploadModal');
+            const select = modalEl.querySelector('select[name="messier_id"]');
+
+            // Preselect the option whose text starts with "<m_number> —"
+            if (select) {
+              for (const opt of select.options) {
+                if (opt.textContent.trim().startsWith(mNumber + ' —')) {
+                  select.value = opt.value;
+                  break;
+                }
+              }
+            }
+
+            // Clear inputs
+            modalEl.querySelector('input[name="observed_date"]').value = '';
+            modalEl.querySelector('input[name="image"]').value = '';
+            modalEl.querySelector('textarea[name="journal_text"]').value = '';
+
+            // Show modal
+            const bsModal = new bootstrap.Modal(modalEl, {
+              backdrop: 'static',
+              keyboard: true,
+              focus: true
+            });
+            bsModal.show();
+
+            // Ensure modal is focusable after opening
+            modalEl.addEventListener('shown.bs.modal', function() {
+              console.log('Add modal shown, focusing first input');
+              const firstInput = modalEl.querySelector('input:not([type="hidden"])');
+              if (firstInput) {
+                firstInput.focus();
+                console.log('Focused input:', firstInput);
+              }
+            });
+
+            // Prevent modal from closing when clicking inside
+            modalEl.addEventListener('click', function(e) {
+              e.stopPropagation();
+            });
+          }, 200);
+        }
+
+        function refreshCharts() {
+          // Fetch updated progress data
+          fetch('/api/progress', {
+            method: 'GET',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          })
+          .then(r => r.json())
+          .then(progress => {
+            // Get catalog totals from the page (they don't change)
+            const catalogTotals = {
+              galaxies: parseInt('{{ catalog_totals.get("Galaxy", 0) }}') || 0,
+              nebulae: parseInt('{{ catalog_totals.get("Nebula", 0) }}') || 0,
+              clusters: parseInt('{{ catalog_totals.get("Star Cluster", 0) }}') || 0
+            };
+
+            updateProgressChart(progress, catalogTotals);
+            updateDonutCharts(progress, catalogTotals);
+          })
+          .catch(err => console.error('Failed to refresh charts:', err));
+        }
+
+        function updateProgressChart(progress, totals) {
+          const chart = Highcharts.charts.find(c => c && c.renderTo.id === 'hc-total-progress');
+          if (chart) {
+            const collected = progress.total;
+            const catalog = 110; // Total Messier objects
+            const remaining = Math.max(catalog - collected, 0);
+            const pct = Math.round((collected / catalog) * 1000) / 10;
+
+            chart.series[0].setData([{ y: remaining }]);
+            chart.series[1].setData([{ y: collected }]);
+
+            // Update data labels
+            if (collected < 20) {
+              chart.series[0].update({
+                dataLabels: {
+                  enabled: true,
+                  formatter: function () { return collected + ' / ' + catalog + ' (' + pct + '%)'; }
+                }
+              });
+              chart.series[1].update({
+                dataLabels: { enabled: false }
+              });
+            } else {
+              chart.series[0].update({
+                dataLabels: { enabled: false }
+              });
+              chart.series[1].update({
+                dataLabels: {
+                  enabled: true,
+                  formatter: function () { return collected + ' / ' + catalog + ' (' + pct + '%)'; }
+                }
+              });
+            }
+          }
+        }
+
+        function updateDonutCharts(progress, totals) {
+          updateDonutChart('donut-galaxies', progress.galaxies, totals.galaxies, 'Galaxies');
+          updateDonutChart('donut-nebulae', progress.nebulae, totals.nebulae, 'Nebulae');
+          updateDonutChart('donut-clusters', progress.star_clusters, totals.clusters, 'Star Clusters');
+        }
+
+        function updateDonutChart(containerId, completed, total, label) {
+          const chart = Highcharts.charts.find(c => c && c.renderTo.id === containerId);
+          if (chart) {
+            const remaining = Math.max(total - completed, 0);
+            chart.series[0].setData([
+              { name: 'Completed', y: completed, color: '#2db1c1' },
+              { name: 'Remaining', y: remaining, color: 'rgba(139,95,191,0.15)' }
+            ]);
+
+            // Update center text
+            if (chart.customCenterLabel) {
+              chart.customCenterLabel.attr({ text: completed + ' / ' + total });
+            }
+          }
+        }
+      </script>
+
+      <script>
+        (function () {
+          const input = document.getElementById('journal-search');
+          if (!input) return;
+          input.addEventListener('input', function () {
+            const q = this.value.trim().toLowerCase();
+            const rows = document.querySelectorAll('#journal-list tbody tr');
+            rows.forEach(function (row) {
+              if (!q) { row.style.display = ''; return; }
+              // col 2=Messier#, col 4=Type, col 5=Constellation
+              const num = (row.children[2]?.textContent || '').toLowerCase();
+              const type = (row.children[4]?.textContent || '').toLowerCase();
+              const cons = (row.children[5]?.textContent || '').toLowerCase();
+              row.style.display = (num.includes(q) || type.includes(q) || cons.includes(q)) ? '' : 'none';
+            });
+          });
+        })();
+      </script>
+
 
       {% else %}
       <em>No entries yet. Click the <i class="bi bi-journal-plus"></i> icon in the bottom right to begin adding
@@ -237,34 +637,7 @@
   </div>
 
 
-  <script>
-    document.addEventListener('click', function (ev) {
-      const btn = ev.target.closest('.add-entry');
-      if (!btn) return;
 
-      const mNum = String(btn.dataset.mNumber || '').trim();
-      const modalEl = document.getElementById('uploadModal');
-      const select = modalEl.querySelector('select[name="messier_id"]');
-
-      // Preselect the option whose text starts with "<m_number> —"
-      if (select) {
-        for (const opt of select.options) {
-          if (opt.textContent.trim().startsWith(mNum + ' —')) {
-            select.value = opt.value;
-            break;
-          }
-        }
-      }
-
-      // Clear inputs
-      modalEl.querySelector('input[name="observed_date"]').value = '';
-      modalEl.querySelector('input[name="image"]').value = '';
-      modalEl.querySelector('textarea[name="journal_text"]').value = '';
-
-      // Show modal
-      bootstrap.Modal.getOrCreateInstance(modalEl).show();
-    });
-  </script>
 
 
 
@@ -300,19 +673,7 @@
       </div>
     </div>
   </div>
-  <!-- click hLISTENER for editing button  -->
-  <script>
-    document.addEventListener('click', function (ev) {
-      const btn = ev.target.closest('.entry-edit');
-      if (!btn) return;
 
-      document.getElementById('editEntryId').value = btn.dataset.entryId || '';
-      document.getElementById('editObsDate').value = (btn.dataset.obs || '').slice(0, 10);
-      document.getElementById('editNotes').value = btn.dataset.journal || '';
-
-      new bootstrap.Modal(document.getElementById('editModal')).show();
-    });
-  </script>
 
 
   <!-- ENHANCEMENT THREE DELETE MODAL -->
@@ -345,18 +706,7 @@
       </div>
     </div>
   </div>
-  <!-- LISTENER FOR BUTTON CLICK -->
-  <script>
-    document.addEventListener('click', function (ev) {
-      const btn = ev.target.closest('.delete-entry');
-      if (!btn) return;
 
-      document.getElementById('delEntryId').value = btn.dataset.entryId || '';
-      document.getElementById('delObjectLabel').textContent = btn.dataset.object || 'this entry';
-
-      new bootstrap.Modal(document.getElementById('confirmEntryDeleteModal')).show();
-    });
-  </script>
 
 
 

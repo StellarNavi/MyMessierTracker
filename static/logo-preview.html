@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Logo Preview — My Messier Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d0b15; padding: 52px 36px; max-width: 860px; margin: 0 auto; }
+    .label {
+      font-family: Rajdhani, sans-serif;
+      font-size: 10px; letter-spacing: 5px; color: #342650;
+      text-transform: uppercase; margin-bottom: 32px;
+    }
+    .option {
+      border: 1px solid #1a1428; border-radius: 12px;
+      padding: 44px 48px 36px; margin-bottom: 32px; background: #0b0a17;
+    }
+  </style>
+</head>
+<body>
+
+<!--
+  3 VARIATIONS — all share:
+    • Proper clockwise spiral galaxy (outer + inner arm loops)
+    • 3-star cluster with diffraction spikes
+    • Binoculars in bottom-left corner of badge
+    • Rajdhani font, MESSIER dominant
+
+  Differences:
+    V1 — Badge left · MESSIER stacked right  (current implementation)
+    V2 — Badge left · 3-line stacked right, arm colours shifted warmer
+    V3 — Badge centred above · MESSIER centred below  (emblem layout)
+-->
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- V1 — Badge left · stacked MY / MESSIER / TRACKER right        -->
+<!--      Teal-to-purple gradient, thin arm strokes (3px / 2px)    -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="option">
+  <div class="label">V1 — Badge Left · MESSIER Stacked Right · Teal→Purple</div>
+
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 150"
+       style="width:100%;max-width:640px;height:auto;">
+    <defs>
+      <linearGradient id="v1text" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#2db1c1"/>
+        <stop offset="100%" stop-color="#8b5fbf"/>
+      </linearGradient>
+      <linearGradient id="v1ring" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%"   stop-color="#2db1c1"/>
+        <stop offset="100%" stop-color="#8b5fbf"/>
+      </linearGradient>
+      <radialGradient id="v1s1" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="1"/>
+        <stop offset="28%"  stop-color="#2db1c1" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#2db1c1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="v1s2" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.95"/>
+        <stop offset="30%"  stop-color="#8b5fbf" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#8b5fbf" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="v1s3" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.9"/>
+        <stop offset="35%"  stop-color="#a97fc4" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="#a97fc4" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="v1arm" cx="75" cy="100" r="40" gradientUnits="userSpaceOnUse">
+        <stop offset="0%"   stop-color="#2db1c1" stop-opacity="0.95"/>
+        <stop offset="50%"  stop-color="#8b5fbf" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="#8b5fbf" stop-opacity="0.15"/>
+      </radialGradient>
+      <radialGradient id="v1core" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.95"/>
+        <stop offset="40%"  stop-color="#a97fc4" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#8b5fbf" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="v1sup" x1="0%" y1="100%" x2="0%" y2="0%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f4f2f5" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="v1sdn" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f4f2f5" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="v1slf" x1="100%" y1="0%" x2="0%" y2="0%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f4f2f5" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="v1srt" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f4f2f5" stop-opacity="0"/>
+      </linearGradient>
+      <clipPath id="v1clip"><circle cx="75" cy="75" r="66"/></clipPath>
+    </defs>
+
+    <circle cx="75" cy="75" r="68" fill="#0d0c1a" stroke="url(#v1ring)" stroke-width="2.5"/>
+    <g clip-path="url(#v1clip)">
+      <!-- Stars -->
+      <circle cx="65" cy="28" r="18" fill="url(#v1s1)"/><circle cx="65" cy="28" r="3.8" fill="#f4f2f5" opacity="0.95"/>
+      <rect x="64" y="6"  width="2" height="22" fill="url(#v1sup)"/><rect x="64" y="28" width="2" height="22" fill="url(#v1sdn)"/>
+      <rect x="42" y="27" width="23" height="2" fill="url(#v1slf)"/><rect x="65" y="27" width="23" height="2" fill="url(#v1srt)"/>
+      <circle cx="86" cy="37" r="11" fill="url(#v1s2)"/><circle cx="86" cy="37" r="2.6" fill="#f4f2f5" opacity="0.9"/>
+      <rect x="85" y="20" width="2" height="17" fill="url(#v1sup)"/><rect x="85" y="37" width="2" height="17" fill="url(#v1sdn)"/>
+      <rect x="68" y="36" width="18" height="2" fill="url(#v1slf)"/><rect x="86" y="36" width="18" height="2" fill="url(#v1srt)"/>
+      <circle cx="56" cy="46" r="7" fill="url(#v1s3)"/><circle cx="56" cy="46" r="1.8" fill="#f4f2f5" opacity="0.85"/>
+      <rect x="55" y="32" width="2" height="14" fill="url(#v1sup)"/><rect x="55" y="46" width="2" height="14" fill="url(#v1sdn)"/>
+      <rect x="41" y="45" width="15" height="2" fill="url(#v1slf)"/><rect x="56" y="45" width="15" height="2" fill="url(#v1srt)"/>
+      <!-- Galaxy -->
+      <circle cx="75" cy="100" r="34" fill="#8b5fbf" opacity="0.05"/>
+      <path d="M75,93 C88,93 95,97 95,100 C95,118 82,130 75,130 C56,130 43,118 43,100"
+            fill="none" stroke="url(#v1arm)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M75,107 C61,107 55,103 55,100 C55,82 67,70 75,70 C95,70 107,82 107,100"
+            fill="none" stroke="url(#v1arm)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M75,97 C81,97 86,99 86,100 C86,109 80,115 75,115 C65,115 61,109 61,100"
+            fill="none" stroke="url(#v1arm)" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+      <path d="M75,103 C69,103 64,101 64,100 C64,91 70,85 75,85 C85,85 89,91 89,100"
+            fill="none" stroke="url(#v1arm)" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+      <ellipse cx="75" cy="100" rx="10" ry="7"   fill="url(#v1core)"/>
+      <ellipse cx="75" cy="100" rx="4"  ry="2.8" fill="#f4f2f5" opacity="0.95"/>
+      <!-- Binoculars bottom-left -->
+      <rect x="26" y="115" width="10" height="7" rx="2.5" fill="#1a1030" stroke="#5a3a7a" stroke-width="1.2"/>
+      <rect x="42" y="115" width="10" height="7" rx="2.5" fill="#1a1030" stroke="#5a3a7a" stroke-width="1.2"/>
+      <circle cx="31" cy="127" r="7"   fill="#0d0c1a" stroke="url(#v1text)" stroke-width="1.8"/>
+      <circle cx="31" cy="127" r="4.2" fill="#071419"/>
+      <circle cx="31" cy="127" r="2.2" fill="#2db1c1" opacity="0.35"/>
+      <circle cx="29" cy="125" r="1"   fill="#f4f2f5" opacity="0.25"/>
+      <circle cx="47" cy="127" r="7"   fill="#0d0c1a" stroke="url(#v1text)" stroke-width="1.8"/>
+      <circle cx="47" cy="127" r="4.2" fill="#071419"/>
+      <circle cx="47" cy="127" r="2.2" fill="#2db1c1" opacity="0.35"/>
+      <circle cx="45" cy="125" r="1"   fill="#f4f2f5" opacity="0.25"/>
+      <rect x="34.5" y="123" width="9" height="5" rx="2" fill="#2e1f4a"/>
+    </g>
+    <text x="164" y="48"  font-family="Rajdhani,'Segoe UI',sans-serif" font-size="15" font-weight="400" fill="#a97fc4" letter-spacing="8">MY</text>
+    <text x="160" y="118" font-family="Rajdhani,'Segoe UI',sans-serif" font-size="80" font-weight="700" fill="url(#v1text)" letter-spacing="2">MESSIER</text>
+    <text x="164" y="140" font-family="Rajdhani,'Segoe UI',sans-serif" font-size="17" font-weight="600" fill="#2db1c1" letter-spacing="9">TRACKER</text>
+  </svg>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- V2 — Badge left · wordmark right · warmer purple→pink palette  -->
+<!--      Galaxy arms shifted pink-purple, badge ring stays teal   -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="option">
+  <div class="label">V2 — Badge Left · Warmer Pink-Purple Arm Colour</div>
+
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 150"
+       style="width:100%;max-width:640px;height:auto;">
+    <defs>
+      <linearGradient id="v2text" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#2db1c1"/>
+        <stop offset="100%" stop-color="#8b5fbf"/>
+      </linearGradient>
+      <linearGradient id="v2ring" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%"   stop-color="#2db1c1"/>
+        <stop offset="100%" stop-color="#8b5fbf"/>
+      </linearGradient>
+      <radialGradient id="v2s1" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="1"/>
+        <stop offset="28%"  stop-color="#2db1c1" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#2db1c1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="v2s2" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.95"/>
+        <stop offset="30%"  stop-color="#8b5fbf" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#8b5fbf" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="v2s3" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.9"/>
+        <stop offset="35%"  stop-color="#a97fc4" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="#a97fc4" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Arms: lavender centre fading to pink-purple -->
+      <radialGradient id="v2arm" cx="75" cy="100" r="40" gradientUnits="userSpaceOnUse">
+        <stop offset="0%"   stop-color="#a97fc4" stop-opacity="0.95"/>
+        <stop offset="50%"  stop-color="#8b507c" stop-opacity="0.85"/>
+        <stop offset="100%" stop-color="#f3aae6" stop-opacity="0.1"/>
+      </radialGradient>
+      <radialGradient id="v2core" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.95"/>
+        <stop offset="40%"  stop-color="#f3aae6" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#8b507c" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="v2sup" x1="0%" y1="100%" x2="0%" y2="0%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f4f2f5" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="v2sdn" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f4f2f5" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="v2slf" x1="100%" y1="0%" x2="0%" y2="0%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f4f2f5" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="v2srt" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f4f2f5" stop-opacity="0"/>
+      </linearGradient>
+      <clipPath id="v2clip"><circle cx="75" cy="75" r="66"/></clipPath>
+    </defs>
+
+    <circle cx="75" cy="75" r="68" fill="#0d0c1a" stroke="url(#v2ring)" stroke-width="2.5"/>
+    <g clip-path="url(#v2clip)">
+      <!-- Stars -->
+      <circle cx="65" cy="28" r="18" fill="url(#v2s1)"/><circle cx="65" cy="28" r="3.8" fill="#f4f2f5" opacity="0.95"/>
+      <rect x="64" y="6"  width="2" height="22" fill="url(#v2sup)"/><rect x="64" y="28" width="2" height="22" fill="url(#v2sdn)"/>
+      <rect x="42" y="27" width="23" height="2" fill="url(#v2slf)"/><rect x="65" y="27" width="23" height="2" fill="url(#v2srt)"/>
+      <circle cx="86" cy="37" r="11" fill="url(#v2s2)"/><circle cx="86" cy="37" r="2.6" fill="#f4f2f5" opacity="0.9"/>
+      <rect x="85" y="20" width="2" height="17" fill="url(#v2sup)"/><rect x="85" y="37" width="2" height="17" fill="url(#v2sdn)"/>
+      <rect x="68" y="36" width="18" height="2" fill="url(#v2slf)"/><rect x="86" y="36" width="18" height="2" fill="url(#v2srt)"/>
+      <circle cx="56" cy="46" r="7" fill="url(#v2s3)"/><circle cx="56" cy="46" r="1.8" fill="#f4f2f5" opacity="0.85"/>
+      <rect x="55" y="32" width="2" height="14" fill="url(#v2sup)"/><rect x="55" y="46" width="2" height="14" fill="url(#v2sdn)"/>
+      <rect x="41" y="45" width="15" height="2" fill="url(#v2slf)"/><rect x="56" y="45" width="15" height="2" fill="url(#v2srt)"/>
+      <!-- Galaxy -->
+      <circle cx="75" cy="100" r="34" fill="#8b507c" opacity="0.06"/>
+      <path d="M75,93 C88,93 95,97 95,100 C95,118 82,130 75,130 C56,130 43,118 43,100"
+            fill="none" stroke="url(#v2arm)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M75,107 C61,107 55,103 55,100 C55,82 67,70 75,70 C95,70 107,82 107,100"
+            fill="none" stroke="url(#v2arm)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M75,97 C81,97 86,99 86,100 C86,109 80,115 75,115 C65,115 61,109 61,100"
+            fill="none" stroke="url(#v2arm)" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+      <path d="M75,103 C69,103 64,101 64,100 C64,91 70,85 75,85 C85,85 89,91 89,100"
+            fill="none" stroke="url(#v2arm)" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+      <ellipse cx="75" cy="100" rx="10" ry="7"   fill="url(#v2core)"/>
+      <ellipse cx="75" cy="100" rx="4"  ry="2.8" fill="#f4f2f5" opacity="0.95"/>
+      <!-- Binoculars -->
+      <rect x="26" y="115" width="10" height="7" rx="2.5" fill="#1a1030" stroke="#8b507c" stroke-width="1.2"/>
+      <rect x="42" y="115" width="10" height="7" rx="2.5" fill="#1a1030" stroke="#8b507c" stroke-width="1.2"/>
+      <circle cx="31" cy="127" r="7"   fill="#0d0c1a" stroke="url(#v2text)" stroke-width="1.8"/>
+      <circle cx="31" cy="127" r="4.2" fill="#071419"/>
+      <circle cx="31" cy="127" r="2.2" fill="#2db1c1" opacity="0.35"/>
+      <circle cx="29" cy="125" r="1"   fill="#f4f2f5" opacity="0.25"/>
+      <circle cx="47" cy="127" r="7"   fill="#0d0c1a" stroke="url(#v2text)" stroke-width="1.8"/>
+      <circle cx="47" cy="127" r="4.2" fill="#071419"/>
+      <circle cx="47" cy="127" r="2.2" fill="#2db1c1" opacity="0.35"/>
+      <circle cx="45" cy="125" r="1"   fill="#f4f2f5" opacity="0.25"/>
+      <rect x="34.5" y="123" width="9" height="5" rx="2" fill="#3a1a3a"/>
+    </g>
+    <text x="164" y="48"  font-family="Rajdhani,'Segoe UI',sans-serif" font-size="15" font-weight="400" fill="#a97fc4" letter-spacing="8">MY</text>
+    <text x="160" y="118" font-family="Rajdhani,'Segoe UI',sans-serif" font-size="80" font-weight="700" fill="url(#v2text)" letter-spacing="2">MESSIER</text>
+    <text x="164" y="140" font-family="Rajdhani,'Segoe UI',sans-serif" font-size="17" font-weight="600" fill="#2db1c1" letter-spacing="9">TRACKER</text>
+  </svg>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- V3 — Badge centred above · MESSIER centred below (emblem)     -->
+<!--      Larger badge (90px radius in viewBox), full-emblem feel  -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="option">
+  <div class="label">V3 — Centred Emblem Layout · Badge Above · MESSIER Below</div>
+
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 240"
+       style="width:100%;max-width:580px;height:auto;">
+    <defs>
+      <linearGradient id="v3text" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#2db1c1"/>
+        <stop offset="100%" stop-color="#8b5fbf"/>
+      </linearGradient>
+      <linearGradient id="v3ring" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%"   stop-color="#2db1c1"/>
+        <stop offset="100%" stop-color="#8b5fbf"/>
+      </linearGradient>
+      <radialGradient id="v3s1" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="1"/>
+        <stop offset="28%"  stop-color="#2db1c1" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#2db1c1" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="v3s2" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.95"/>
+        <stop offset="30%"  stop-color="#8b5fbf" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#8b5fbf" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="v3s3" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.9"/>
+        <stop offset="35%"  stop-color="#a97fc4" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="#a97fc4" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Galaxy centre at (290,100) for this layout -->
+      <radialGradient id="v3arm" cx="290" cy="100" r="52" gradientUnits="userSpaceOnUse">
+        <stop offset="0%"   stop-color="#2db1c1" stop-opacity="0.95"/>
+        <stop offset="50%"  stop-color="#8b5fbf" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="#8b5fbf" stop-opacity="0.12"/>
+      </radialGradient>
+      <radialGradient id="v3core" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.95"/>
+        <stop offset="40%"  stop-color="#a97fc4" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#8b5fbf" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="v3sup" x1="0%" y1="100%" x2="0%" y2="0%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f4f2f5" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="v3sdn" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f4f2f5" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="v3slf" x1="100%" y1="0%" x2="0%" y2="0%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f4f2f5" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="v3srt" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#f4f2f5" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f4f2f5" stop-opacity="0"/>
+      </linearGradient>
+      <!-- Badge clip centred at (290,95) -->
+      <clipPath id="v3clip"><circle cx="290" cy="95" r="86"/></clipPath>
+    </defs>
+
+    <!-- Badge -->
+    <circle cx="290" cy="95" r="88" fill="#0d0c1a" stroke="url(#v3ring)" stroke-width="2.5"/>
+
+    <g clip-path="url(#v3clip)">
+      <!-- Stars — upper-right of badge -->
+      <circle cx="318" cy="34" r="20" fill="url(#v3s1)"/><circle cx="318" cy="34" r="4" fill="#f4f2f5" opacity="0.95"/>
+      <rect x="317" y="10"  width="2" height="24" fill="url(#v3sup)"/><rect x="317" y="34" width="2" height="24" fill="url(#v3sdn)"/>
+      <rect x="293" y="33" width="25" height="2" fill="url(#v3slf)"/><rect x="318" y="33" width="25" height="2" fill="url(#v3srt)"/>
+      <circle cx="342" cy="46" r="12" fill="url(#v3s2)"/><circle cx="342" cy="46" r="2.8" fill="#f4f2f5" opacity="0.9"/>
+      <rect x="341" y="28" width="2" height="18" fill="url(#v3sup)"/><rect x="341" y="46" width="2" height="18" fill="url(#v3sdn)"/>
+      <rect x="323" y="45" width="19" height="2" fill="url(#v3slf)"/><rect x="342" y="45" width="19" height="2" fill="url(#v3srt)"/>
+      <circle cx="305" cy="54" r="8" fill="url(#v3s3)"/><circle cx="305" cy="54" r="2" fill="#f4f2f5" opacity="0.85"/>
+      <rect x="304" y="40" width="2" height="14" fill="url(#v3sup)"/><rect x="304" y="54" width="2" height="14" fill="url(#v3sdn)"/>
+      <rect x="290" y="53" width="15" height="2" fill="url(#v3slf)"/><rect x="305" y="53" width="15" height="2" fill="url(#v3srt)"/>
+
+      <!-- Galaxy — centred at (290,115) -->
+      <circle cx="290" cy="115" r="44" fill="#8b5fbf" opacity="0.05"/>
+      <!-- Outer arms (CW spiral, 270° sweep each) -->
+      <path d="M290,107 C306,107 315,111 315,115 C315,135 300,150 290,150 C268,150 252,135 252,115"
+            fill="none" stroke="url(#v3arm)" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M290,123 C274,123 265,119 265,115 C265,95 280,80 290,80 C312,80 328,95 328,115"
+            fill="none" stroke="url(#v3arm)" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Inner arms -->
+      <path d="M290,111 C297,111 303,113 303,115 C303,124 297,130 290,130 C278,130 274,124 274,115"
+            fill="none" stroke="url(#v3arm)" stroke-width="2.2" stroke-linecap="round" opacity="0.7"/>
+      <path d="M290,119 C283,119 277,117 277,115 C277,106 283,100 290,100 C302,100 306,106 306,115"
+            fill="none" stroke="url(#v3arm)" stroke-width="2.2" stroke-linecap="round" opacity="0.7"/>
+      <!-- Core -->
+      <ellipse cx="290" cy="115" rx="12" ry="8.5" fill="url(#v3core)"/>
+      <ellipse cx="290" cy="115" rx="5"  ry="3.5" fill="#f4f2f5" opacity="0.95"/>
+
+      <!-- Binoculars bottom-left of badge -->
+      <rect x="218" cy="161" x="218" y="158" width="12" height="8" rx="3" fill="#1a1030" stroke="#5a3a7a" stroke-width="1.2"/>
+      <rect x="236" y="158" width="12" height="8" rx="3" fill="#1a1030" stroke="#5a3a7a" stroke-width="1.2"/>
+      <circle cx="224" cy="172" r="9"   fill="#0d0c1a" stroke="url(#v3text)" stroke-width="2"/>
+      <circle cx="224" cy="172" r="5.5" fill="#071419"/>
+      <circle cx="224" cy="172" r="2.8" fill="#2db1c1" opacity="0.35"/>
+      <circle cx="222" cy="170" r="1.2" fill="#f4f2f5" opacity="0.25"/>
+      <circle cx="242" cy="172" r="9"   fill="#0d0c1a" stroke="url(#v3text)" stroke-width="2"/>
+      <circle cx="242" cy="172" r="5.5" fill="#071419"/>
+      <circle cx="242" cy="172" r="2.8" fill="#2db1c1" opacity="0.35"/>
+      <circle cx="240" cy="170" r="1.2" fill="#f4f2f5" opacity="0.25"/>
+      <rect x="228" y="168" width="10" height="6" rx="2.5" fill="#2e1f4a"/>
+    </g>
+
+    <!-- "MY" small above -->
+    <text x="290" y="198"
+          font-family="Rajdhani,'Segoe UI',sans-serif"
+          font-size="14" font-weight="400"
+          fill="#a97fc4" letter-spacing="10" text-anchor="middle">MY</text>
+    <!-- "MESSIER" dominant centred -->
+    <text x="290" y="232"
+          font-family="Rajdhani,'Segoe UI',sans-serif"
+          font-size="46" font-weight="700"
+          fill="url(#v3text)" letter-spacing="6" text-anchor="middle">MESSIER TRACKER</text>
+  </svg>
+</div>
+
+</body>
+</html>

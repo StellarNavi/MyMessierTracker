@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS public.journal_entries (
   image_id   UUID     REFERENCES public.images(id) ON DELETE SET NULL,
   body       TEXT,
   observed_date DATE,
+  is_observed BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT journal_entries_user_object_unique UNIQUE (user_id, messier_id)

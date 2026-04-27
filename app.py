@@ -16,6 +16,8 @@ from flask_login import (LoginManager, UserMixin, login_user, logout_user, login
 from werkzeug.utils import secure_filename
 from config import Config
 
+load_dotenv()
+
 app = Flask(__name__)
 app.config.from_object(Config)
 
@@ -155,7 +157,8 @@ def dashboard():
                                 je.observed_date,
                                 je.body,
                                 je.image_id,
-                                je.updated_at
+                                je.updated_at,
+                                je.is_observed
                             from public.journal_entries je
                             WHERE je.user_id = %s)
                 SELECT je.id,
@@ -174,7 +177,8 @@ def dashboard():
                     mo.url                                                      as nasa_url,
                     'M' || mo.messier_number::varchar || ': ' || mo.common_name as obj_title,
                     r.rarity_pct                                                as rarity,
-                    mo.nasa_image_key
+                    mo.id::varchar                                              as messier_obj_id,
+                    je.is_observed
                 FROM public.messier_objects mo
                         left join je
                                 on mo.id = je.messier_id
@@ -198,8 +202,10 @@ def dashboard():
                 "subtype":r[12],
                 "nasa_url":r[13],
                 "obj_title":r[14],
-                "rarity":r[15], # Enahancement #2: Rarity metric
-                "nasa_img":r[16]
+                "rarity":float(r[15]) if r[15] is not None else None, # Enahancement #2: Rarity metric
+                "nasa_img":f"M{r[1]:03d}_Messier_{r[1]}.jpg",
+                "m_id":r[16],
+                "is_observed": bool(r[17]) if r[0] is not None else False
             } for r in cur.fetchall()]
             
             # ENHANCEMENT 2: implement a rarity score and use it to show the top remaining items 
@@ -213,7 +219,7 @@ def dashboard():
                         # only identifies entry as rare if less than half of users have logged it
                         # 10/8 update - now also takes into consideration only those captured
                         (e for e in entries if e.get("rarity") is not None and e["rarity"] < 50
-                         and e.get("date")),
+                         and e.get("date") and e.get("is_observed")),
                         key=lambda x: x["rarity"])[:3]
                     ]
             # order the ranks to be tagged with gold, silver, bronze later
@@ -231,7 +237,7 @@ def dashboard():
                 "messier_id":str(r[0]),
                 "object_type":r[1], 
                 "object":r[2],
-                "rarity_pct":r[3]
+                "rarity_pct":float(r[3] or 0)
             } for r in cur.fetchall()]
             
             # donut 1 (top 3 galxies)
@@ -247,7 +253,7 @@ def dashboard():
                 "messier_id":str(r[0]),
                 "object_type":r[1], 
                 "object":r[2],
-                "rarity_pct":r[3]
+                "rarity_pct":float(r[3] or 0)
             } for r in cur.fetchall()]
             
             # donut 2 (top 3 nebulae)
@@ -263,7 +269,7 @@ def dashboard():
                 "messier_id":str(r[0]),
                 "object_type":r[1], 
                 "object":r[2],
-                "rarity_pct":r[3]
+                "rarity_pct":float(r[3] or 0)
             } for r in cur.fetchall()]
             
             # donut 3 (top 3 star clusters)
@@ -279,16 +285,16 @@ def dashboard():
                 "messier_id":str(r[0]),
                 "object_type":r[1], 
                 "object":r[2],
-                "rarity_pct":r[3]
+                "rarity_pct":float(r[3] or 0)
             } for r in cur.fetchall()]
             
             
-            # get overall user progress numbers from database
+            # get overall user progress numbers from database (only is_observed=TRUE)
             cur.execute("""
                 SELECT mo.object_type, COUNT(*)
-                FROM public.user_object_images uoi
-                JOIN public.messier_objects mo ON mo.id = uoi.messier_id
-                WHERE uoi.user_id = %s
+                FROM public.journal_entries je
+                JOIN public.messier_objects mo ON mo.id = je.messier_id
+                WHERE je.user_id = %s AND je.is_observed = TRUE
                 GROUP BY mo.object_type
             """, (user_id,))
             # creates dictionary (key value pairs) for count of each category
@@ -570,14 +576,22 @@ def journal_delete():
                    FROM public.journal_entries 
                    WHERE id = %s and user_id = %s 
                    limit 1""", (entry_id, user_id))
-    img_id = cur.fetchone()[0]
+    row = cur.fetchone()
+    if not row:
+        flash("Entry not found.", "danger")
+        cur.close(); conn.close()
+        return redirect(url_for("dashboard"))
+    img_id = row[0]  # None for quick-observe entries (no image)
 
-    # pass image id to get the path of stored imageso it can be removed later
-    cur.execute("""SELECT file_path 
-                   FROM public.images 
-                   WHERE id = %s and user_id = %s 
-                   limit 1""", (img_id, user_id))
-    img_key = cur.fetchone()[0]
+    img_key = None
+    if img_id is not None:
+        cur.execute("""SELECT file_path
+                       FROM public.images
+                       WHERE id = %s and user_id = %s
+                       limit 1""", (img_id, user_id))
+        img_row = cur.fetchone()
+        if img_row:
+            img_key = img_row[0]
     
     # DELETE ALL DATABASE RECORDS
     # delete the journal entry
@@ -587,30 +601,27 @@ def journal_delete():
                 (entry_id, user_id))
 
 
-    # TODO remove record from user_object_images
-    cur.execute("""DELETE 
-                FROM public.user_object_images 
-                WHERE image_id = %s AND user_id = %s ;""",
-                (img_id, user_id))
+    if img_id is not None:
+        cur.execute("""DELETE
+                    FROM public.user_object_images
+                    WHERE image_id = %s AND user_id = %s ;""",
+                    (img_id, user_id))
+        cur.execute("""DELETE
+                    FROM public.images
+                    WHERE id = %s AND user_id = %s ;""",
+                    (img_id, user_id))
 
-    # TODO remove record from images
-    cur.execute("""DELETE 
-                FROM public.images 
-                WHERE id = %s AND user_id = %s ;""",
-                (img_id, user_id))
     conn.commit()
-    
+    cur.close()
+    conn.close()
 
-    # DELETE FROM FILE STORAGE
-    # TODO remove image file from file storage
-    try:
-        # updated to be platform agnositic for web service deployment
-        # TODO: VALIDATE
-        p = (UPLOAD_DIR / img_key)
-        if p.exists():
-            p.unlink()
-    except Exception:
-        app.logger.exception("Failed to delete file %s", p)
+    if img_key:
+        try:
+            p = (UPLOAD_DIR / img_key)
+            if p.exists():
+                p.unlink()
+        except Exception:
+            app.logger.exception("Failed to delete file %s", p)
 
     return redirect(url_for("dashboard"))
 
@@ -729,12 +740,103 @@ def register():
                     conn.close()
     return render_template("register.html", error=error)
 
-# REGISTER PAGE VIEW -------------------------------------------------------------------------------
+# QUICK OBSERVE TOGGLE: non-destructively marks/unmarks an object as observed
+# Checking creates a minimal entry if none exists, or sets is_observed=TRUE.
+# Unchecking sets is_observed=FALSE — never deletes the entry.
+@app.route("/journal/toggle-observe", methods=["POST"])
+@login_required
+def journal_toggle_observe():
+    from flask import jsonify
+    from datetime import date
+    user_id = str(current_user.id)
+    data = request.get_json(silent=True) or {}
+    messier_id = data.get("messier_id")
+    checked = data.get("checked")  # True = mark observed, False = unmark
+    if not messier_id or checked is None:
+        return jsonify({"error": "missing messier_id or checked"}), 400
+
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id FROM public.journal_entries
+                WHERE user_id = %s AND messier_id = %s
+            """, (user_id, messier_id))
+            existing = cur.fetchone()
+
+            if checked:
+                if not existing:
+                    # No entry — create a minimal quick-observe entry with today's date
+                    cur.execute("""
+                        INSERT INTO public.journal_entries
+                            (user_id, messier_id, observed_date, is_observed, created_at, updated_at)
+                        VALUES (%s, %s, %s, TRUE, NOW(), NOW())
+                        RETURNING id
+                    """, (user_id, messier_id, date.today()))
+                    new_id = str(cur.fetchone()[0])
+                    conn.commit()
+                    return jsonify({"status": "observed", "entry_id": new_id})
+                else:
+                    # Entry exists — set is_observed=TRUE
+                    cur.execute("""
+                        UPDATE public.journal_entries
+                        SET is_observed = TRUE, updated_at = NOW()
+                        WHERE id = %s
+                    """, (existing[0],))
+                    conn.commit()
+                    return jsonify({"status": "observed", "entry_id": str(existing[0])})
+            else:
+                if not existing:
+                    return jsonify({"status": "unobserved"})
+                # Entry exists — set is_observed=FALSE (never delete)
+                cur.execute("""
+                    UPDATE public.journal_entries
+                    SET is_observed = FALSE, updated_at = NOW()
+                    WHERE id = %s
+                """, (existing[0],))
+                conn.commit()
+                return jsonify({"status": "unobserved"})
+    except Exception:
+        if conn: conn.rollback()
+        return jsonify({"error": "Server error"}), 500
+    finally:
+        if conn: conn.close()
+
+
+# API ENDPOINT FOR PROGRESS DATA -------------------------------------------------------------------
+@app.route("/api/progress")
+@login_required
+def api_progress():
+    from flask import jsonify
+    user_id = str(current_user.id)
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            # Get progress by type
+            cur.execute("""
+                SELECT mo.object_type, COUNT(*)
+                FROM public.journal_entries je
+                JOIN public.messier_objects mo ON mo.id = je.messier_id
+                WHERE je.user_id = %s AND je.is_observed = TRUE
+                GROUP BY mo.object_type
+            """, (user_id,))
+            by_type = {k: v for k, v in cur.fetchall()}
+            progress = {
+                "total": sum(by_type.values()),
+                "galaxies": by_type.get("Galaxy", 0),
+                "nebulae": by_type.get("Nebula", 0),
+                "star_clusters": by_type.get("Star Cluster", 0),
+            }
+            return jsonify(progress)
+    finally:
+        conn.close()
+
+
 # simple reroute to login screen once logged out
 @app.route("/logout")
-@login_required
 def logout():
     logout_user()
+    session.clear()
     return redirect(url_for("landing"))
 
 # PROFILE PAGE VIEW -------------------------------------------------------------------------------
@@ -820,6 +922,6 @@ def account_delete():
 
 # runs the app
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
 
 # NTS: DONT FORGET TO RUN DOCKER!!!

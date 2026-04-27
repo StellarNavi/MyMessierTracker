@@ -7,16 +7,8 @@ body {
   font-size: 18px;
   margin: 0;
   min-height: 100vh;
-}
-
-/* starfield overlay (login/register screens - sources listed there)  */
-#particles-js {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
+  position: relative;
+  z-index: 1;
 }
 
 /* progress bar (testing with diff visuals) */
@@ -137,9 +129,11 @@ body {
   opacity: .55;
   filter: grayscale(1);
 }
+
 .is-missing td {
   color: #b0b0b0;
 }
+
 .is-missing img {
   filter: grayscale(1) brightness(.85);
 }
@@ -157,3 +151,167 @@ body {
   color: #f4a5c8 !important;
 }
 
+/* landscape background scene */
+#skyscape {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* twinkling star animation */
+@keyframes twinkle {
+
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.star-tw {
+  animation: twinkle var(--dur, 3s) ease-in-out infinite;
+}
+
+/* shooting star animation */
+@keyframes shoot {
+  0% {
+    stroke-dashoffset: 600;
+    opacity: 0;
+  }
+
+  4% {
+    opacity: 1;
+  }
+
+  45% {
+    stroke-dashoffset: -600;
+    opacity: 0;
+  }
+
+  100% {
+    stroke-dashoffset: -600;
+    opacity: 0;
+  }
+}
+
+.shooting-star {
+  stroke: rgba(255, 255, 255, 0.88);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 90 600;
+  stroke-dashoffset: 600;
+  animation: shoot 9s ease-in-out infinite;
+}
+
+/* journal search input */
+.journal-search-input {
+  background: #1a1530;
+  border: 1px solid #6b507c;
+  color: #e0d9f5;
+  max-width: 340px;
+}
+
+.journal-search-input:focus {
+  background: #1f1a38;
+  border-color: #a97fc4;
+  color: #f4f2f5;
+  box-shadow: 0 0 0 .2rem rgba(169, 127, 196, .25);
+}
+
+.journal-search-input::placeholder {
+  color: #7a6a8a;
+}
+
+/* Highcharts container and chart styles */
+.highcharts-container {
+  position: relative;
+  z-index: 5;
+  width: 100% !important;
+}
+
+/* Modal styles - ensure they appear above charts and are interactive */
+.modal {
+  z-index: 1060 !important;
+  pointer-events: auto !important;
+}
+
+.modal-dialog {
+  pointer-events: auto !important;
+}
+
+.modal-content {
+  pointer-events: auto !important;
+}
+
+.modal-backdrop {
+  z-index: 1055 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  pointer-events: none !important;
+}
+
+.modal-backdrop.show {
+  opacity: 0.5 !important;
+}
+
+/* Ensure modal form elements are clickable */
+.modal input,
+.modal textarea,
+.modal button,
+.modal select,
+.modal label {
+  pointer-events: auto !important;
+}
+
+/* Prevent backdrop from interfering with modal content */
+.modal-backdrop {
+  pointer-events: none !important;
+}
+
+.modal.show .modal-backdrop {
+  pointer-events: none !important;
+}
+
+/* Ensure modal content is always on top and clickable */
+.modal.show {
+  z-index: 1060 !important;
+}
+
+.modal.show .modal-dialog {
+  z-index: 1061 !important;
+}
+
+.modal.show .modal-content {
+  z-index: 1062 !important;
+  position: relative;
+}
+
+/* Force all modal elements to be clickable */
+.modal.show input,
+.modal.show textarea,
+.modal.show button,
+.modal.show select,
+.modal.show label,
+.modal.show .btn-close {
+  pointer-events: auto !important;
+  z-index: 1063 !important;
+  position: relative;
+}
+
+/* Progress bar container */
+#hc-total-progress {
+  width: 100%;
+  display: block;
+}
+
+/* Donut chart containers */
+#donut-galaxies,
+#donut-nebulae,
+#donut-clusters {
+  width: 100%;
+  display: block;
+}
